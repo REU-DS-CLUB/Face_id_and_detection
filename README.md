@@ -16,7 +16,7 @@
 
 ## :paw_prints: Контакты
 
-**Telegram**: @suhowandrew, @polyanka003, 
-**VK**: [vk.com/suhowandrew](https://vk.com/suhowandrew), [vk.com/pelagech](https://vk.com/pelagech)
+**Telegram**: @suhowandrew, @polyanka003, @sponkulusnodge
+**VK**: [vk.com/suhowandrew](https://vk.com/suhowandrew), [vk.com/pelagech](https://vk.com/pelagech), [vk.com/id612881843](https://vk.com/id612881843)
   
   
