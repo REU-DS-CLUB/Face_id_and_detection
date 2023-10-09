@@ -1,0 +1,9 @@
+
+
+use_colab: False
+img_size: 256
+epochs: 10
+batch_size: 16
+model: 0
+
+
