@@ -7,7 +7,7 @@ import torchvision.transforms as tf
 def cam_capture(source=0, model=None, bbox_func=None, limit=inf):
 
     """""
-    source - источник видеоБ если 0,то это камера ноутбука
+    source - источник видео, если 0,то это камера ноутбука
     model - модель, выдающая координаты
     bbox_func - функция, котороая строит изображение с bounding box'ом на основе предиктов модели
     limit - количество милисекунд, в течение которых работает камера
