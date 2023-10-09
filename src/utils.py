@@ -8,6 +8,7 @@ import cv2
 from numpy import inf
 import torchvision
 import torchvision.transforms as tf
+import torch
 
 def get_options():
     options_path = 'config.yaml'
@@ -26,11 +27,11 @@ def get_detection_dataset_for_colab():
             name=fn, length=len(uploaded[fn])))
 
     # Then move kaggle.json into the folder where the API expects to find it.
-    !mkdir -p ~/.kaggle/ && mv kaggle.json ~/.kaggle/ && chmod 600 ~/.kaggle/kaggle.json
+    # !mkdir -p ~/.kaggle/ && mv kaggle.json ~/.kaggle/ && chmod 600 ~/.kaggle/kaggle.json
 
-    !kaggle datasets download -d sbaghbidi/human-faces-object-detection
-    !mkdir data
-    !mv human-faces-object-detection.zip data
+    # !kaggle datasets download -d sbaghbidi/human-faces-object-detection
+    # !mkdir data
+    # !mv human-faces-object-detection.zip data
 
     data_path = Path("data/")
     image_path = data_path / "human-faces-object-detection"
@@ -54,6 +55,18 @@ def save_img(img, pred, epoch):
     pil_image.save(image_path)
 
 
+def rescale_coordinates(tensor, original_shape=(720, 1280), model_shape=(126, 126)):
+    # Извлекаем координаты из тензора
+    x1, y1, x2, y2 = tensor[0][1:]
+
+    # Масштабирование координат
+    x1 = int((x1 / model_shape[1]) * original_shape[1])
+    y1 = int((y1 / model_shape[0]) * original_shape[0])
+    x2 = int((x2 / model_shape[1]) * original_shape[1])
+    y2 = int((y2 / model_shape[0]) * original_shape[0])
+
+    return [x1, y1, x2, y2]
+
 def cam_capture(source=0, model=None, bbox_func=None, limit=inf):
 
     """""
@@ -64,25 +77,44 @@ def cam_capture(source=0, model=None, bbox_func=None, limit=inf):
 
     """""
 
-    cam = cv2.VideoCapture(source)
+    cap = cv2.VideoCapture(source)
     i = 0 
 
     while i<=limit:
 
-        pic = cam.read()[1]
+        ret, frame = cap.read()
 
-        pic = cv2.cvtColor(pic, cv2.COLOR_BGR2RGB)
-        pic_tens = tf.ToTensor()(pic)
+        if not ret:
+            print("Failed to grab frame")
+            break
 
-        res = model(pic_tens)
+        
+        # Преобразуем изображение из BGR в RGB
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        bboxed = bbox_func(pic.uint8(), res.uint8(), colors = 'red') ## функция tv.utils.draw_bounding_boxes() принимает на вход только uint8 тензоры
+        # Изменяем размер изображения до 126x126
+        resized_frame = cv2.resize(rgb_frame, (126, 126))
+        
+        
 
-        output = cv2.cvtColor(bboxed.permute([1, 2, 0]).numpy(), cv2.COLOR_BGR2RGB)
+        pic_tens = tf.ToTensor()(resized_frame)
+        
+        
 
-        cv2.imshow('Detection output', output)
-        cv2.waitKey(1)
+        with torch.no_grad():
 
+            res = model(pic_tens.unsqueeze(0))
+        
+        coord = rescale_coordinates(res)
+      
+
+        cv2.rectangle(frame, (coord[0], coord[1]), (coord[2], coord[3]), (0, 255, 0), 2)
+        
+        print(res)
+        cv2.imshow("Camera Feed with BBox", frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
         i += 1
-    
-    cam.release()
+
+    cap.release()
+    cv2.destroyAllWindows()
