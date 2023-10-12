@@ -129,7 +129,7 @@ backimage_path = 'data/data_background'
 batch_size = config['batch_size']
 img_size = config['img_size']
 dataset_for_detection = FacesDataset(image_path, y_labels, img_size, img_size)
-dataset_of_backgrounds = BackgroundDataset(backimage_path)
+dataset_of_backgrounds = BackgroundDataset(backimage_path, img_size, img_size)
 
 dataset = ConcatDataset([dataset_for_detection, dataset_of_backgrounds])
 dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)
