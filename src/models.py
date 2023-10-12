@@ -39,6 +39,37 @@ def get_pretrained_VGG16():
 
     return vgg16
 
+def get_efficient_net(size = 'm', pretrained=True):
+    print('Входное должно иметь размер 224x224')
+
+    models = {'s':torchvision.models.efficientnet_v2_s(pretrained=pretrained),
+             'm': torchvision.models.efficientnet_v2_m(pretrained=pretrained),
+             'l':torchvision.models.efficientnet_v2_l(pretrained=pretrained)}
+    
+    effnet = models[size]
+
+    OUTPUT_NEURONS = 5
+
+    num_of_in_features = effnet.classifier[-1].in_features
+
+    effnet.classifier[-1] = torch.nn.Linear(num_of_in_features, OUTPUT_NEURONS)
+
+    return effnet
+    
+
+def get_resnet(pretrained):
+
+    resnet = torch.hub.load('pytorch/vision:v0.10.0', 'resnet50', pretrained=pretrained)
+
+    OUTPUT_NEURONS = 5
+
+    num_of_in_features = resnet.fc.in_features
+
+
+    resnet.fc = torch.nn.Linear(num_of_in_features, OUTPUT_NEURONS)
+
+    return resnet
+    
 
 class VGG16(nn.Module):
     def __init__(self, img_size):
