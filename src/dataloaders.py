@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch.nn as nn
 from torchvision import models, transforms, datasets
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, ConcatDataset
 from pathlib import Path
 
 from tqdm import tqdm
@@ -25,6 +25,7 @@ if config['use_colab']:
 else: 
     y_labels = pd.read_csv('data/data_detection/faces.csv')
     image_path = 'data/data_detection/images'
+    backimage_path = 'data/data_background'
 
 
 class FacesDataset(Dataset):
@@ -91,7 +92,44 @@ class FacesDataset(Dataset):
         return self.n_samples
 
 
+class BackgroundDataset(Dataset):
+
+    def __init__(self, folder_path, height=64, width=64):
+
+        ''' Loading dataset
+        folder_path: path where images are stored
+        '''
+        self.folder_path = Path(folder_path)
+        self.height = height
+        self.width = width
+
+        self.types = ['Bathroom', 'Bedroom', 'Dinning', 'Kitchen', 'Livingroom']
+
+        self.images_path = []
+        for type in self.types:
+            self.images_path += os.listdir(os.path.join(folder_path, type))
+        
+        self.n_samples = len(self.images_path)
+
+
+    def __getitem__(self, index):
+        image_path = self.images_path[index]
+        img = cv2.imread(image_path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) 
+        img = cv2.resize(img, (self.width, self.height)).astype(np.float32)
+        img /= 255.0 
+        img = np.transpose(img, (2, 0, 1)) 
+
+        return img, 0, -1, -1, -1, -1
+
+    def __len__(self):
+        return self.n_samples
+
+backimage_path = 'data/data_background'
 batch_size = config['batch_size']
 img_size = config['img_size']
 dataset_for_detection = FacesDataset(image_path, y_labels, img_size, img_size)
-dataloader_for_detection = DataLoader(dataset=dataset_for_detection, batch_size=batch_size, shuffle=True)
+dataset_of_backgrounds = BackgroundDataset(backimage_path)
+
+dataset = ConcatDataset([dataset_for_detection, dataset_of_backgrounds])
+dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)
