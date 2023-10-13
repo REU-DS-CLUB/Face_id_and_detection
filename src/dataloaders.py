@@ -18,14 +18,16 @@ import random
 import cv2
 import src.utils as utils
 
+
 config = utils.get_options()
 
 if config['use_colab']:
     image_path, y_labels = utils.get_detection_dataset_for_colab()
+    backg_image_path = utils.get_background_dataset_for_colab()
 else: 
     y_labels = pd.read_csv('data/data_detection/faces.csv')
     image_path = 'data/data_detection/images'
-    backimage_path = 'data/data_background'
+    backg_image_path = 'data/data_background'
 
 
 class FacesDataset(Dataset):
@@ -107,7 +109,9 @@ class BackgroundDataset(Dataset):
 
         self.images_path = []
         for type in self.types:
-            self.images_path += os.listdir(os.path.join(folder_path, type))
+            cur_images_path = os.listdir(os.path.join(folder_path, type))
+            random.shuffle(cur_images_path)
+            self.images_path += cur_images_path[:2500]
         
         self.n_samples = len(self.images_path)
 
@@ -125,11 +129,11 @@ class BackgroundDataset(Dataset):
     def __len__(self):
         return self.n_samples
 
-backimage_path = 'data/data_background'
+
 batch_size = config['batch_size']
 img_size = config['img_size']
 dataset_for_detection = FacesDataset(image_path, y_labels, img_size, img_size)
-dataset_of_backgrounds = BackgroundDataset(backimage_path, img_size, img_size)
+dataset_of_backgrounds = BackgroundDataset(backg_image_path, img_size, img_size)
 
 dataset = ConcatDataset([dataset_for_detection, dataset_of_backgrounds])
 dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)

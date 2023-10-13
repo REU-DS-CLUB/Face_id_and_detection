@@ -47,10 +47,37 @@ def get_detection_dataset_for_colab():
 
     return image_path, y_labels
 
+def get_background_dataset_for_colab():
+    from google.colab import files
+
+    uploaded = files.upload()
+
+    for fn in uploaded.keys():
+        print('User uploaded file "{name}" with length {length} bytes'.format(
+            name=fn, length=len(uploaded[fn])))
+
+    # Then move kaggle.json into the folder where the API expects to find it.
+    # !mkdir -p ~/.kaggle/ && mv kaggle.json ~/.kaggle/ && chmod 600 ~/.kaggle/kaggle.json
+
+    # !kaggle datasets download -d sbaghbidi/human-faces-object-detection
+    # !mkdir data
+    # !mv human-faces-object-detection.zip data
+
+    data_path = Path("data/")
+    zip_name = "house_room_dataset"
+    image_path = data_path / zip_name
+    with zipfile.ZipFile(data_path / f"{zip_name}.zip", "r") as zip_ref:
+        print("Unzipping...")
+        zip_ref.extractall(image_path)
+
+    image_path = data_path / zip_name 
+
+    return image_path
+
 
 def save_img(img, pred, epoch):
     box = torchvision.utils.draw_bounding_boxes(img, [pred[0], pred[1], pred[2], pred[3]], colors = 'red')
-    torchvision.transforms.ToPILImage()(box)
+    pil_image = torchvision.transforms.ToPILImage()(box)
     image_path = f"./results/epoch_{epoch}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
     pil_image.save(image_path)
 
