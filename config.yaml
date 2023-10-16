@@ -3,7 +3,7 @@
 use_colab: False
 img_size: 256
 epochs: 10
-batch_size: 16
+batch_size: 4
 model: 0
 
 
