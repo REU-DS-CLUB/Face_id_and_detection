@@ -4,11 +4,12 @@ from datetime import datetime
 from comet_ml import Experiment
 from pathlib import Path
 
-import cv2 
+import cv2
 from numpy import inf
 import torchvision
 import torchvision.transforms as tf
 import torch
+
 
 def get_options():
     options_path = 'config.yaml'
@@ -41,11 +42,13 @@ def get_detection_dataset_for_colab():
 
     image_path = data_path / "human-faces-object-detection" / "images"
 
-    y_labels = pd.read_csv('/content/data/human-faces-object-detection/faces.csv')
+    y_labels = pd.read_csv(
+        '/content/data/human-faces-object-detection/faces.csv')
 
     images_paths = list(image_path.glob('*.jpg'))
 
     return image_path, y_labels
+
 
 def get_background_dataset_for_colab():
     from google.colab import files
@@ -70,13 +73,14 @@ def get_background_dataset_for_colab():
         print("Unzipping...")
         zip_ref.extractall(image_path)
 
-    image_path = data_path / zip_name 
+    image_path = data_path / zip_name
 
     return image_path
 
 
 def save_img(img, pred, epoch):
-    box = torchvision.utils.draw_bounding_boxes(img, [pred[0], pred[1], pred[2], pred[3]], colors = 'red')
+    box = torchvision.utils.draw_bounding_boxes(
+        img, [pred[0], pred[1], pred[2], pred[3]], colors='red')
     pil_image = torchvision.transforms.ToPILImage()(box)
     image_path = f"./results/epoch_{epoch}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
     pil_image.save(image_path)
@@ -94,8 +98,8 @@ def rescale_coordinates(tensor, original_shape=(720, 1280), model_shape=(126, 12
 
     return [x1, y1, x2, y2]
 
-def cam_capture(source=0, model=None, bbox_func=None, limit=inf):
 
+def cam_capture(source=0, model=None, bbox_func=None, limit=inf):
     """""
     source - источник видео, если 0,то это камера ноутбука
     model - модель, выдающая координаты
@@ -105,9 +109,9 @@ def cam_capture(source=0, model=None, bbox_func=None, limit=inf):
     """""
 
     cap = cv2.VideoCapture(source)
-    i = 0 
+    i = 0
 
-    while i<=limit:
+    while i <= limit:
 
         ret, frame = cap.read()
 
@@ -115,28 +119,23 @@ def cam_capture(source=0, model=None, bbox_func=None, limit=inf):
             print("Failed to grab frame")
             break
 
-        
         # Преобразуем изображение из BGR в RGB
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         # Изменяем размер изображения до 126x126
         resized_frame = cv2.resize(rgb_frame, (126, 126))
-        
-        
 
         pic_tens = tf.ToTensor()(resized_frame)
-        
-        
 
         with torch.no_grad():
 
             res = model(pic_tens.unsqueeze(0))
-        
-        coord = rescale_coordinates(res)
-      
 
-        cv2.rectangle(frame, (coord[0], coord[1]), (coord[2], coord[3]), (0, 255, 0), 2)
-        
+        coord = rescale_coordinates(res)
+
+        cv2.rectangle(frame, (coord[0], coord[1]),
+                      (coord[2], coord[3]), (0, 255, 0), 2)
+
         print(res)
         cv2.imshow("Camera Feed with BBox", frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):

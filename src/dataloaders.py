@@ -24,7 +24,7 @@ config = utils.get_options()
 if config['use_colab']:
     image_path, y_labels = utils.get_detection_dataset_for_colab()
     backg_image_path = utils.get_background_dataset_for_colab()
-else: 
+else:
     y_labels = pd.read_csv('data/data_detection/faces.csv')
     image_path = 'data/data_detection/images'
     backg_image_path = 'data/data_background'
@@ -33,7 +33,6 @@ else:
 class FacesDataset(Dataset):
 
     def __init__(self, images_path, dataset, height=64, width=64):
-
         ''' Loading dataset
         images_path: path where images are stored
         dataset: dataframe where image names and box bounds are stored
@@ -61,17 +60,17 @@ class FacesDataset(Dataset):
                 if i == j:
                     self.images.append(i)
 
-
     def __getitem__(self, index):
 
         image_name = self.images[index]
         image_path = self.images_path / image_name
 
         img = cv2.imread(str(image_path))
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) # by default in cv2 represents image in BGR order, so we have to convert it back to RGB
+        # by default in cv2 represents image in BGR order, so we have to convert it back to RGB
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = cv2.resize(img, (self.width, self.height)).astype(np.float32)
-        img /= 255.0 # normalizing values
-        img = np.transpose(img, (2, 0, 1)) # converting to HHWC format
+        img /= 255.0  # normalizing values
+        img = np.transpose(img, (2, 0, 1))  # converting to HHWC format
 
         image_labels = self.dataset[self.dataset['image_name'] == image_name]
 
@@ -97,9 +96,8 @@ class FacesDataset(Dataset):
 class BackgroundDataset(Dataset):
 
     def __init__(self, folder_path, height=64, width=64):
-
         ''' Loading dataset
-        folder_path: path where images are stored
+        folder_path: path of images of background
         '''
         self.folder_path = Path(folder_path)
         self.height = height
@@ -107,24 +105,26 @@ class BackgroundDataset(Dataset):
 
         self.types = ['Bathroom', 'Bedroom', 'Dinning', 'Kitchen', 'Livingroom']
 
-        self.images_path = []
+        images_path = []
         for type in self.types:
-            cur_images_path = os.listdir(os.path.join(folder_path, type))
-            random.shuffle(cur_images_path)
-            self.images_path += cur_images_path[:2500]
-        
-        self.n_samples = len(self.images_path)
+            type_folder = os.path.join(folder_path, type)
+            images = os.listdir(type_folder)
+            images_path += [os.path.join("data", os.path.relpath(os.path.join(type_folder, img), 'data/'))
+                            for img in images]
+        random.shuffle(images_path)
+        self.images_path = images_path[:2500]
 
+        self.n_samples = len(self.images_path)
 
     def __getitem__(self, index):
         image_path = self.images_path[index]
         img = cv2.imread(image_path)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) 
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = cv2.resize(img, (self.width, self.height)).astype(np.float32)
-        img /= 255.0 
-        img = np.transpose(img, (2, 0, 1)) 
+        img /= 255.0
+        img = np.transpose(img, (2, 0, 1))
 
-        return img, 0, -1, -1, -1, -1
+        return img, torch.tensor([0, -1, -1, -1, -1])
 
     def __len__(self):
         return self.n_samples
@@ -132,8 +132,8 @@ class BackgroundDataset(Dataset):
 
 batch_size = config['batch_size']
 img_size = config['img_size']
-dataset_for_detection = FacesDataset(image_path, y_labels, img_size, img_size)
+# dataset_for_detection = FacesDataset(image_path, y_labels, img_size, img_size)
 dataset_of_backgrounds = BackgroundDataset(backg_image_path, img_size, img_size)
 
-dataset = ConcatDataset([dataset_for_detection, dataset_of_backgrounds])
-dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)
+# dataset = ConcatDataset([dataset_for_detection, dataset_of_backgrounds])
+dataloader = DataLoader(dataset=dataset_of_backgrounds, batch_size=batch_size, shuffle=True, num_workers=4)

@@ -17,10 +17,9 @@ import random
 import cv2
 
 import torch
-import torchvision.models 
+import torchvision.models
 import torchvision.transforms as transforms
 from PIL import Image
-
 
 
 def get_pretrained_VGG16():
@@ -30,7 +29,7 @@ def get_pretrained_VGG16():
     OUTPUT_NEURONS = 5
 
     # У вгг последние слои находятся в блоке classifier и он состоит из 6 слоев, мы обращаемся
-    # к этому блоку, к последнему (6) слою и забираем in_features, так как он понадобится для изменения 
+    # к этому блоку, к последнему (6) слою и забираем in_features, так как он понадобится для изменения
     # последнего слоя
     num_of_in_features = vgg16.classifier[6].in_features
 
@@ -39,13 +38,14 @@ def get_pretrained_VGG16():
 
     return vgg16
 
-def get_efficient_net(size = 'm', pretrained=True):
+
+def get_efficient_net(size='m', pretrained=True):
     print('Входное должно иметь размер 224x224')
 
-    models = {'s':torchvision.models.efficientnet_v2_s(pretrained=pretrained),
-             'm': torchvision.models.efficientnet_v2_m(pretrained=pretrained),
-             'l':torchvision.models.efficientnet_v2_l(pretrained=pretrained)}
-    
+    models = {'s': torchvision.models.efficientnet_v2_s(pretrained=pretrained),
+              'm': torchvision.models.efficientnet_v2_m(pretrained=pretrained),
+              'l': torchvision.models.efficientnet_v2_l(pretrained=pretrained)}
+
     effnet = models[size]
 
     OUTPUT_NEURONS = 5
@@ -55,7 +55,7 @@ def get_efficient_net(size = 'm', pretrained=True):
     effnet.classifier[-1] = torch.nn.Linear(num_of_in_features, OUTPUT_NEURONS)
 
     return effnet
-    
+
 
 def get_resnet(pretrained):
 
@@ -65,11 +65,10 @@ def get_resnet(pretrained):
 
     num_of_in_features = resnet.fc.in_features
 
-
     resnet.fc = torch.nn.Linear(num_of_in_features, OUTPUT_NEURONS)
 
     return resnet
-    
+
 
 class VGG16(nn.Module):
     def __init__(self, img_size):
