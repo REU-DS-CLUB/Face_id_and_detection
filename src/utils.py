@@ -102,6 +102,7 @@ def rescale_coordinates(tensor, original_shape=(720, 1280), model_shape=(126, 12
 
 
 def cam_capture(source=0, model=None, bbox_func=None, limit=inf):
+
     """""
     source - источник видео, если 0,то это камера ноутбука
     model - модель, выдающая координаты
@@ -111,9 +112,9 @@ def cam_capture(source=0, model=None, bbox_func=None, limit=inf):
     """""
 
     cap = cv2.VideoCapture(source)
-    i = 0
+    i = 0 
 
-    while i <= limit:
+    while i<=limit:
 
         ret, frame = cap.read()
 
@@ -121,24 +122,29 @@ def cam_capture(source=0, model=None, bbox_func=None, limit=inf):
             print("Failed to grab frame")
             break
 
+        
         # Преобразуем изображение из BGR в RGB
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         # Изменяем размер изображения до 126x126
-        resized_frame = cv2.resize(rgb_frame, (126, 126))
+        resized_frame = cv2.resize(rgb_frame, (128, 128))
+        
+        
 
         pic_tens = tf.ToTensor()(resized_frame)
+        
+        
 
         with torch.no_grad():
 
             res = model(pic_tens.unsqueeze(0))
-
+        
         coord = rescale_coordinates(res)
+      
 
-        cv2.rectangle(frame, (coord[0], coord[1]),
-                      (coord[2], coord[3]), (0, 255, 0), 2)
-
-        print(res)
+        cv2.rectangle(frame, (coord[0], coord[1]), (coord[2], coord[3]), (0, 0, 255), 2)
+        
+        print(coord)
         cv2.imshow("Camera Feed with BBox", frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
