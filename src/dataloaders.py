@@ -84,7 +84,7 @@ class FacesDataset(Dataset):
             x1 = (image_labels['x1'].iloc[i] / cur_width) * self.width
             y1 = (image_labels['y1'].iloc[i] / cur_height) * self.height
 
-            bbox = torch.tensor([1, x0, y0, x1, y1])
+            bbox = torch.tensor([1, x0, y0, x1, y1]).float()
             break
 
         return img, bbox
@@ -124,7 +124,7 @@ class BackgroundDataset(Dataset):
         img /= 255.0
         img = np.transpose(img, (2, 0, 1))
 
-        return img, torch.tensor([0, -1, -1, -1, -1])
+        return img, torch.tensor([0, -1, -1, -1, -1]).float()
 
     def __len__(self):
         return self.n_samples
@@ -132,8 +132,8 @@ class BackgroundDataset(Dataset):
 
 batch_size = config['batch_size']
 img_size = config['img_size']
-# dataset_for_detection = FacesDataset(image_path, y_labels, img_size, img_size)
+dataset_for_detection = FacesDataset(image_path, y_labels, img_size, img_size)
 dataset_of_backgrounds = BackgroundDataset(backg_image_path, img_size, img_size)
 
-# dataset = ConcatDataset([dataset_for_detection, dataset_of_backgrounds])
-dataloader = DataLoader(dataset=dataset_of_backgrounds, batch_size=batch_size, shuffle=True, num_workers=4)
+dataset = ConcatDataset([dataset_for_detection, dataset_of_backgrounds])
+dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=4)
