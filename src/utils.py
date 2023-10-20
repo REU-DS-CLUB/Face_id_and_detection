@@ -152,3 +152,38 @@ def cam_capture(source=0, model=None, bbox_func=None, limit=inf):
 
     cap.release()
     cv2.destroyAllWindows()
+
+
+import torchvision.transforms as tf
+
+def crop(pic, coords, scale=2, size=256):
+    
+    '''
+    pic - входное изображение PIL
+    coords - координаты рамки
+    scale - фактор скалирования рамки (то, во сколько раз обрезанное изображение больше рамки)
+    size - размер выходного изображение
+    
+    '''
+    
+    pic_width = pic.size[0]
+    pic_height = pic.size[1]
+        
+    
+    center = (0.5*(coords[2]+coords[0]), 
+              0.5*(coords[3]+coords[1]))
+    
+    width = scale*(coords[2]-coords[0])
+    height = scale*(coords[3]-coords[1])
+    
+    side = min(max(width, height), min(pic_width, pic_height))
+    
+    bot_right = [min(center[0]+side/2, pic_width), 
+                 min(center[1]+side/2, pic_height)]
+    
+    x0 = max(0, bot_right[0] - side)
+    y0 = max(0, bot_right[1] - side)
+    
+    res = tf.functional.resized_crop(pic, y0, x0, min(side, pic_height), min(side, pic_width), size=size)
+    
+    return res, center
