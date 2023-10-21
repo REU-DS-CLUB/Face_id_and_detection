@@ -18,6 +18,8 @@ import random
 import cv2
 import src.utils as utils
 
+import albumentations as A
+
 
 config = utils.get_options()
 
@@ -32,15 +34,15 @@ else:
 
 class FacesDataset(Dataset):
 
-    def __init__(self, images_path, dataset, height=64, width=64):
+    def __init__(self, images_path, dataset, transform, height=64, width=64):
         ''' Loading dataset
         images_path: path where images are stored
         dataset: dataframe where image names and box bounds are stored
+        transform: functions for data augmentation (from albumentations lib)
         height: height used to resize the image
         width: width used to resize the image
         images_list: list where all image paths are stored
         bboxes: list where all the bounding boxes are stored
-
         '''
         self.images_path = Path(images_path)
         self.dataset = dataset
@@ -51,6 +53,8 @@ class FacesDataset(Dataset):
         self.images_list = sorted(list(self.images_path.glob('*.jpg')))
         self.images_names = [image.name for image in self.images_list]
         self.bboxes_names = dataset['image_name'].tolist()
+
+        self.transform = transform
 
    # cut down to only images present in dataset
 
@@ -86,6 +90,14 @@ class FacesDataset(Dataset):
 
             bbox = torch.tensor([1, x0, y0, x1, y1]).float()
             break
+
+        items = self.transform(image=np.transpose(img, (1, 2, 0)), bboxes=[list(bbox[1:])], class_labels=[1])
+        img = np.transpose(items['image'], (2, 0, 1)) # converting back to HHWC format
+
+        if len(items['bboxes']) > 0:
+            bbox = torch.tensor([1] + list(items['bboxes'][0]))
+        else:
+            bbox = [0, -1, -1, -1, -1] # if bbox is too small after the augmentation we drop the bbox
 
         return img, bbox
 
@@ -129,10 +141,15 @@ class BackgroundDataset(Dataset):
     def __len__(self):
         return self.n_samples
 
+transform = A.Compose([
+    A.RandomCrop(width=126, height=126),
+    A.Rotate(limit=30, p=0.5),
+    A.RandomBrightnessContrast(brightness_limit=1, contrast_limit=1, p=0.5),
+], bbox_params=A.BboxParams(format='pascal_voc', min_area=1024, min_visibility=0.1, label_fields=['class_labels']))
 
 batch_size = config['batch_size']
 img_size = config['img_size']
-dataset_for_detection = FacesDataset(image_path, y_labels, img_size, img_size)
+dataset_for_detection = FacesDataset(image_path, y_labels, transform, img_size, img_size)
 dataset_of_backgrounds = BackgroundDataset(backg_image_path, img_size, img_size)
 
 dataset = ConcatDataset([dataset_for_detection, dataset_of_backgrounds])
