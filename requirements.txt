@@ -6,7 +6,6 @@ opencv_python==4.7.0.72
 pandas==2.0.2
 Pillow==10.1.0
 protobuf==3.20.3
-PyYAML==6.0
 PyYAML==6.0.1
 torch==2.0.1
 torchvision==0.15.2
