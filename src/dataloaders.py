@@ -136,6 +136,10 @@ class BackgroundDataset(Dataset):
         img = cv2.resize(img, (self.width, self.height)).astype(np.float32)
         img /= 255.0
         img = np.transpose(img, (2, 0, 1))
+        
+        img = torch.tensor(img) 
+        img = self.transform(img)
+        img = np.transpose(img, (0, 1, 2)) # converting back to CHW format
 
         return img, torch.tensor([0, -1, -1, -1, -1]).float()
 
