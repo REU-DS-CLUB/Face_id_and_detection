@@ -74,7 +74,7 @@ class FacesDataset(Dataset):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = cv2.resize(img, (self.width, self.height)).astype(np.float32)
         img /= 255.0  # normalizing values
-        img = np.transpose(img, (2, 0, 1))  # converting to HHWC format
+        img = np.transpose(img, (2, 0, 1))  # converting to CHW format
 
         image_labels = self.dataset[self.dataset['image_name'] == image_name]
 
@@ -92,7 +92,7 @@ class FacesDataset(Dataset):
             break
 
         items = self.transform(image=np.transpose(img, (1, 2, 0)), bboxes=[list(bbox[1:])], class_labels=[1])
-        img = np.transpose(items['image'], (2, 0, 1)) # converting back to HHWC format
+        img = np.transpose(items['image'], (2, 0, 1)) # converting back to CHW format
 
         if len(items['bboxes']) > 0:
             bbox = torch.tensor([1] + list(items['bboxes'][0]))
@@ -107,13 +107,14 @@ class FacesDataset(Dataset):
 
 class BackgroundDataset(Dataset):
 
-    def __init__(self, folder_path, height=64, width=64):
+    def __init__(self, folder_path, transform, height=64, width=64):
         ''' Loading dataset
         folder_path: path of images of background
         '''
         self.folder_path = Path(folder_path)
         self.height = height
         self.width = width
+        self.transform = transform
 
         self.types = ['Bathroom', 'Bedroom', 'Dinning', 'Kitchen', 'Livingroom']
 
@@ -141,16 +142,26 @@ class BackgroundDataset(Dataset):
     def __len__(self):
         return self.n_samples
 
-transform = A.Compose([
-    A.RandomCrop(width=126, height=126),
+transform_faces = A.Compose([
     A.Rotate(limit=30, p=0.5),
     A.RandomBrightnessContrast(brightness_limit=1, contrast_limit=1, p=0.5),
+    A.Flip(p=0.5),
+    A.GaussianBlur(p=0.5)
 ], bbox_params=A.BboxParams(format='pascal_voc', min_area=1024, min_visibility=0.1, label_fields=['class_labels']))
+
+transform_obj = transforms.Compose([
+    transforms.ToPILImage(),
+    transforms.RandomApply([transforms.RandomRotation(degrees=30), 
+                            transforms.ColorJitter(brightness=0.2, contrast=0.2),
+                            transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5))], p=0.5),
+    transforms.RandomHorizontalFlip(p=0.5),
+    transforms.ToTensor()
+])
 
 batch_size = config['batch_size']
 img_size = config['img_size']
-dataset_for_detection = FacesDataset(image_path, y_labels, transform, img_size, img_size)
-dataset_of_backgrounds = BackgroundDataset(backg_image_path, img_size, img_size)
+dataset_for_detection = FacesDataset(image_path, y_labels, transform_faces, img_size, img_size)
+dataset_of_backgrounds = BackgroundDataset(backg_image_path, transform_obj, img_size, img_size)
 
 dataset = ConcatDataset([dataset_for_detection, dataset_of_backgrounds])
 dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=4)
