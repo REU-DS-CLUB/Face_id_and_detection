@@ -55,6 +55,8 @@ def download_dataset_from_kaggle(full_name_of_dataset, name_of_dataset ):
 
 def download_datasets_from_kaggle():
 
+    get_kaggle_json_file()
+
     # перемещение файла kaggle json в место, где его ожидает библиотека kaggle чтоб скачать датасет
     move_kaggle_json_file = [
         "mkdir -p ~/.kaggle/",
