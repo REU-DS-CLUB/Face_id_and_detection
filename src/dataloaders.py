@@ -17,19 +17,22 @@ import datetime
 import random
 import cv2
 import src.utils as utils
-
+from PIL import Image
 import albumentations as A
 
 
 config = utils.get_options()
+
 if config['use_colab']:
-    y_labels = pd.read_csv('/content/Face_id_and_detection/data/human-faces-object-detection/faces.csv')
-    image_path = '/content/Face_id_and_detection/data/human-faces-object-detection/images'
-    backg_image_path = '/content/Face_id_and_detection/data/house-rooms-image-dataset/House_Room_Dataset'
+    root = '/content/Face_id_and_detection/'
 else:
-    y_labels = pd.read_csv('data/data_detection/faces.csv')
-    image_path = 'data/data_detection/images'
-    backg_image_path = 'data/House_Room_Dataset'
+    root = ''
+
+y_labels = pd.read_csv(f'{root}data/human-faces-object-detection/faces.csv')
+
+image_path = f'{root}data/human-faces-object-detection/images'
+backg_image_path = f'{root}data/house-rooms-image-dataset/House_Room_Dataset'
+
 
 
 
@@ -102,6 +105,7 @@ class FacesDataset(Dataset):
         if self.transform:
             img = self.transform(img)
 
+
         return img, bbox
 
     def __len__(self):
@@ -149,18 +153,7 @@ class BackgroundDataset(Dataset):
     def __len__(self):
         return self.n_samples
 
-transform_faces = A.Compose([
-    A.Rotate(limit=30, p=0.5),
-    A.RandomBrightnessContrast(brightness_limit=1, contrast_limit=1, p=0.5),
-    A.Flip(p=0.5),
-    A.GaussianBlur(p=0.5)
-], bbox_params=A.BboxParams(format='pascal_voc', min_area=1024, min_visibility=0.1, label_fields=['class_labels']))
 
-transform_obj = transforms.Compose([
-
-    transforms.ToTensor(),
-    transforms.Resize((128, 128))
-])
 
 class RoomImgDataset(Dataset):
     def __init__(self, folder_path, transform=None):
@@ -182,18 +175,89 @@ class RoomImgDataset(Dataset):
 
         return img, torch.tensor([0, -1, -1, -1, -1])
 
+
+
+
+
+
+# Определение пользовательского датасета
+class TenThousandFaceDataSet(Dataset):
+    def __init__(self, csv_file, image_dir, transform=None, transform_bbox=None):
+        self.data = pd.read_csv(csv_file)
+        self.image_dir = image_dir
+        self.transform = transform
+        self.transform_bbox = transform_bbox
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        img_name = os.path.join(self.image_dir, f"{self.data.iloc[idx, 0]}.jpg")
+        image = Image.open(img_name)
+
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+
+
+        # Извлекаем координаты bbox из CSV файла
+        x1, y1, x2, y2 = self.data.iloc[idx, 1:].values.astype(np.float32)
+        width, height = image.size
+        # Создаем ограничивающий прямоугольник (bbox)
+
+        bbox = torch.Tensor([1, x1/width, y1/height, x2/width, y2/height])
+
+        if self.transform_bbox is not None:
+          items = self.transform_bbox(image=np.transpose(image, (1, 2, 0)), bboxes=[list(bbox[1:])], class_labels=[1])
+          # img = np.transpose(items['image'], (2, 0, 1)) # converting back to HHWC format
+          print(items)
+          if len(items['bboxes']) > 0:
+              bbox = torch.tensor([1] + list(items['bboxes'][0]))
+          else:
+              bbox = torch.tensor([0, -1, -1, -1, -1]) # if bbox is too small after the augmentation we drop the bbox
+
+
+        # Применяем преобразования к изображению (если указаны)
+        if self.transform:
+            image = self.transform(image)
+
+        return image, bbox
+
+
+
+
+
+transform_faces = A.Compose([
+    A.Rotate(limit=30, p=0.5),
+    A.RandomBrightnessContrast(brightness_limit=1, contrast_limit=1, p=0.5),
+    A.Flip(p=0.5),
+    A.GaussianBlur(p=0.5)
+], bbox_params=A.BboxParams(format='pascal_voc', min_area=1024, min_visibility=0.1, label_fields=['class_labels']))
+
+
+transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Resize((128, 128))
+])
+
+
 batch_size = config['batch_size']
 img_size = config['img_size']
 
-dataset_for_detection = FacesDataset(image_path, y_labels, None, transform_obj, img_size, img_size)
-dataset_of_backgrounds = BackgroundDataset(backg_image_path, transform_obj, img_size, img_size)
 
-d1 = RoomImgDataset(folder_path='data/House_Room_Dataset/Bathroom', transform=transform_obj)
-d2 = RoomImgDataset(folder_path='data/House_Room_Dataset/Bedroom', transform=transform_obj)
-d3 = RoomImgDataset(folder_path='data/House_Room_Dataset/Dinning', transform=transform_obj)
-d4 = RoomImgDataset(folder_path='data/House_Room_Dataset/Kitchen', transform=transform_obj)
-d5 = RoomImgDataset(folder_path='data/House_Room_Dataset/Livingroom', transform=transform_obj)
+# Путь к папке с изображениями и CSV файлу
+image_dir_for_ten_thousand_dataset = f"{root}data/face-detection-dataset/images"
+csv_file_path_for_ten_thousand_dataset = f"{root}data/face-detection-dataset/labels_and_coordinates.csv"
 
-dataset = ConcatDataset([dataset_for_detection, d1, d2, d3, d4, d5])
+TenThousandFace_dataset = TenThousandFaceDataSet(csv_file=csv_file_path_for_ten_thousand_dataset, image_dir=image_dir_for_ten_thousand_dataset, transform=transform, transform_bbox=None)
+ThreeThousandFace_dataset = FacesDataset(image_path, y_labels, None, transform, img_size, img_size)
+dataset_of_backgrounds = BackgroundDataset(backg_image_path, transform, img_size, img_size)
+
+d1 = RoomImgDataset(folder_path=f'{root}data/house-rooms-image-dataset/House_Room_Dataset/Bathroom', transform=transform)
+d2 = RoomImgDataset(folder_path=f'{root}data/house-rooms-image-dataset/House_Room_Dataset/Bedroom', transform=transform)
+d3 = RoomImgDataset(folder_path=f'{root}data/house-rooms-image-dataset/House_Room_Dataset/Dinning', transform=transform)
+d4 = RoomImgDataset(folder_path=f'{root}data/house-rooms-image-dataset/House_Room_Dataset/Kitchen', transform=transform)
+d5 = RoomImgDataset(folder_path=f'{root}data/house-rooms-image-dataset/House_Room_Dataset/Livingroom', transform=transform)
+
+dataset = ConcatDataset([ThreeThousandFace_dataset,TenThousandFace_dataset, d1, d2, d3, d4, d5])
 
 dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)

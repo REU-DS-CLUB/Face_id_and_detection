@@ -14,6 +14,7 @@ import zipfile
 import os
 import shutil
 import csv
+import torchvision.transforms as tf
 
 
 def get_options():
@@ -22,6 +23,7 @@ def get_options():
         options = yaml.safe_load(option_file)
     return options
 
+config = get_options()
 
 def get_kaggle_json_file():
     from google.colab import files
@@ -35,8 +37,10 @@ def get_kaggle_json_file():
 
 
 def execute_terminal_comands(commands):
-  for command in commands:
-    subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    r= []
+    for command in commands:
+        r.append(subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True))
+    return r
 
 
 def download_dataset_from_kaggle(full_name_of_dataset, name_of_dataset ):
@@ -49,7 +53,10 @@ def download_dataset_from_kaggle(full_name_of_dataset, name_of_dataset ):
         f"mv {name_of_dataset}.zip data/"
         ]
     
-    execute_terminal_comands(download_face_detection_dataset)
+    print('start executed')
+    d = execute_terminal_comands(download_face_detection_dataset)
+    print(d)
+    print('executed')
 
     data_path = Path("data/")
     image_path = data_path / name_of_dataset
@@ -83,11 +90,15 @@ def download_datasets_from_kaggle():
 
 def preprocessing_of_face_detection_dataset():
     print('Начинаю обработку датасета face_detection_dataset')
+    if config['use_colab']:
+        root = '/content/Face_id_and_detection/'
+    else:
+        root = ''
 
     def move_all_files(name):
         # Пути к папкам train и val
-        train_path = f"/content/Face_id_and_detection/data/face-detection-dataset/{name}/train"
-        val_path = f"/content/Face_id_and_detection/data/face-detection-dataset/{name}/val"
+        train_path = f"{root}data/face-detection-dataset/{name}/train"
+        val_path = f"{root}data/face-detection-dataset/{name}/val"
 
         # Функция для перемещения файлов из source_dir в target_dir
         def move_files(source_dir, target_dir):
@@ -101,10 +112,10 @@ def preprocessing_of_face_detection_dataset():
                 shutil.move(source_file, target_file)
 
         # Перемещаем файлы из папки train в /content/data/face-detection-dataset/labels/
-        move_files(train_path, f"/content/Face_id_and_detection/data/face-detection-dataset/{name}/")
+        move_files(train_path, f"{root}data/face-detection-dataset/{name}/")
 
         # Перемещаем файлы из папки val в /content/data/face-detection-dataset/labels/
-        move_files(val_path, f"/content/Face_id_and_detection/data/face-detection-dataset/{name}/")
+        move_files(val_path, f"{root}data/face-detection-dataset/{name}/")
 
         # Удаляем пустые папки train и val
         os.rmdir(train_path)
@@ -115,12 +126,12 @@ def preprocessing_of_face_detection_dataset():
         
 
     
-        # Папки с файлами .txt и папка с изображениями
-    labels2_dir = "/content/Face_id_and_detection/data/face-detection-dataset/labels2"
+    # Папки с файлами .txt и папка с изображениями
+    labels2_dir = f"{root}data/face-detection-dataset/labels2"
 
 
     # Путь к итоговому CSV файлу
-    csv_file_path = "/content/Face_id_and_detection/data/face-detection-dataset/labels_and_coordinates.csv"
+    csv_file_path = f"{root}data/face-detection-dataset/labels_and_coordinates.csv"
 
     # Открываем CSV файл для записи
     with open(csv_file_path, mode='w', newline='') as csv_file:
@@ -154,74 +165,48 @@ def preprocessing_of_face_detection_dataset():
 
     print(f"Данные записаны в {csv_file_path}")
 
+
+
+def check_if_datasets_are_downloaded():
+
+    if not os.path.exists('/.kaggle/kaggle.json'):
+        print('Moving kaggle file')
+        #check if we have kaggle.json file
+        move_kaggle_json_file = [
+            "mkdir -p ~/.kaggle/",
+            "mv kaggle.json ~/.kaggle/",
+            "chmod 600 ~/.kaggle/kaggle.json"
+        ]
+        execute_terminal_comands(move_kaggle_json_file)
+
+
+
+    #check if three thausand dataset exists
+    if not os.path.exists('data/human-faces-object-detection'):
+        print('\nDOWNLOADING three thausand dataset')
+        download_dataset_from_kaggle('sbaghbidi/human-faces-object-detection', 'human-faces-object-detection')
+
+    #check if three thausand dataset exists
+    if not os.path.exists('data/house-rooms-image-dataset'):
+        print('\nDOWNLOADING house-rooms-image-dataset')
+        download_dataset_from_kaggle('robinreni/house-rooms-image-dataset', 'house-rooms-image-dataset')
+
+    #check if three thausand dataset exists
+    if not os.path.exists('data/face-detection-dataset'):
+        print('\nDOWNLOADING face-detection-dataset (10)')
+        download_dataset_from_kaggle('fareselmenshawii/face-detection-dataset', 'face-detection-dataset')
+        preprocessing_of_face_detection_dataset()
+
+    print('\nall datasets are in place')
+
+
 def colab():
 
     download_datasets_from_kaggle()
 
     preprocessing_of_face_detection_dataset()
-
+    print('\nall a datasets are in place')
     print('\n DONE WITH COLAB')
-
-
-
-def get_detection_dataset_for_colab():
-    from google.colab import files
-
-    uploaded = files.upload()
-
-    for fn in uploaded.keys():
-        print('User uploaded file "{name}" with length {length} bytes'.format(
-            name=fn, length=len(uploaded[fn])))
-
-    # Then move kaggle.json into the folder where the API expects to find it.
-    # !mkdir -p ~/.kaggle/ && mv kaggle.json ~/.kaggle/ && chmod 600 ~/.kaggle/kaggle.json
-
-    # !kaggle datasets download -d sbaghbidi/human-faces-object-detection
-    # !mkdir data
-    # !mv human-faces-object-detection.zip data
-
-    data_path = Path("data/")
-    image_path = data_path / "human-faces-object-detection"
-    with zipfile.ZipFile(data_path / "human-faces-object-detection.zip", "r") as zip_ref:
-        print("Unzipping...")
-        zip_ref.extractall(image_path)
-
-    image_path = data_path / "human-faces-object-detection" / "images"
-
-    y_labels = pd.read_csv(
-        '/content/data/human-faces-object-detection/faces.csv')
-
-    images_paths = list(image_path.glob('*.jpg'))
-
-    return image_path, y_labels
-
-
-def get_background_dataset_for_colab():
-    from google.colab import files
-
-    uploaded = files.upload()
-
-    for fn in uploaded.keys():
-        print('User uploaded file "{name}" with length {length} bytes'.format(
-            name=fn, length=len(uploaded[fn])))
-
-    # Then move kaggle.json into the folder where the API expects to find it.
-    # !mkdir -p ~/.kaggle/ && mv kaggle.json ~/.kaggle/ && chmod 600 ~/.kaggle/kaggle.json
-
-    # !kaggle datasets download -d sbaghbidi/human-faces-object-detection
-    # !mkdir data
-    # !mv human-faces-object-detection.zip data
-
-    data_path = Path("data/")
-    zip_name = "house_room_dataset"
-    image_path = data_path / zip_name
-    with zipfile.ZipFile(data_path / f"{zip_name}.zip", "r") as zip_ref:
-        print("Unzipping...")
-        zip_ref.extractall(image_path)
-
-    image_path = data_path / zip_name
-
-    return image_path
 
 
 def save_img(img, pred, epoch):
@@ -300,7 +285,7 @@ def cam_capture(source=0, model=None, bbox_func=None, limit=inf):
     cv2.destroyAllWindows()
 
 
-import torchvision.transforms as tf
+
 
 def crop(pic, coords, scale=2, size=256):
     
