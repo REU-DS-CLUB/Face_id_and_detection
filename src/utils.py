@@ -3,12 +3,14 @@ import yaml
 from datetime import datetime
 from comet_ml import Experiment
 from pathlib import Path
+import subprocess
 
 import cv2
 from numpy import inf
 import torchvision
 import torchvision.transforms as tf
 import torch
+import zipfile
 
 
 def get_options():
@@ -16,6 +18,63 @@ def get_options():
     with open(options_path, 'r') as option_file:
         options = yaml.safe_load(option_file)
     return options
+
+
+def get_kaggle_json_file():
+    from google.colab import files
+    print('ЗАГРУЗИТЕ kaggle.json ФАЙЛ')
+
+    uploaded = files.upload()
+
+    for fn in uploaded.keys():
+        print('User uploaded file "{name}" with length {length} bytes'.format(
+            name=fn, length=len(uploaded[fn])))
+
+
+def execute_terminal_comands(commands):
+  for command in commands:
+    subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+
+def download_dataset_from_kaggle(full_name_of_dataset, name_of_dataset ):
+
+    download_face_detection_dataset = [
+        f"kaggle datasets download -d {full_name_of_dataset}",
+        "mkdir data",
+        f"mv {name_of_dataset}.zip data/"
+        ]
+    
+    execute_terminal_comands(download_face_detection_dataset)
+
+    data_path = Path("data/")
+    image_path = data_path / name_of_dataset
+    with zipfile.ZipFile(data_path / f"{name_of_dataset}.zip", "r") as zip_ref:
+        print(f"Unzipping dataset {name_of_dataset}")
+        zip_ref.extractall(image_path)
+
+
+def download_datasets_from_kaggle():
+
+    # перемещение файла kaggle json в место, где его ожидает библиотека kaggle чтоб скачать датасет
+    move_kaggle_json_file = [
+        "mkdir -p ~/.kaggle/",
+        "mv kaggle.json ~/.kaggle/",
+        "chmod 600 ~/.kaggle/kaggle.json"
+    ]
+    execute_terminal_comands(move_kaggle_json_file)
+
+    # Скачать датасет с лицами 10к
+    download_dataset_from_kaggle('fareselmenshawii/face-detection-dataset', 'face-detection-dataset')
+
+    # Скачать датасет с комнатами
+    download_dataset_from_kaggle('robinreni/house-rooms-image-dataset', 'house-rooms-image-dataset')
+
+    # Скачать датасет с лицами 3к
+    download_dataset_from_kaggle('sbaghbidi/human-faces-object-detection', 'human-faces-object-detection')
+    
+
+
+
 
 
 def get_detection_dataset_for_colab():
