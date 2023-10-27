@@ -152,6 +152,14 @@ def preprocessing_of_face_detection_dataset():
 
     print(f"Данные записаны в {csv_file_path}")
 
+def colab():
+
+    download_datasets_from_kaggle()
+
+    preprocessing_of_face_detection_dataset()
+
+
+
 def get_detection_dataset_for_colab():
     from google.colab import files
 
