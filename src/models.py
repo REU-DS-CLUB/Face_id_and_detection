@@ -19,6 +19,7 @@ import cv2
 import torch
 import torchvision.models
 import torchvision.transforms as transforms
+import torch.nn.functional as F
 from PIL import Image
 
 
@@ -172,3 +173,84 @@ class VGG4(nn.Module):
         x = self.fc3(x)
 
         return x
+
+
+
+
+class InspectorGadjet(nn.Module):
+    def __init__(self):
+        super(InspectorGadjet, self).__init__()
+        
+        # Основные сверточные слои
+        self.conv_layers = nn.Sequential(
+            nn.Conv2d(3, 32, kernel_size=3, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2),
+
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2),
+
+            nn.Conv2d(64, 128, kernel_size=3, padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2),
+
+            nn.Conv2d(128, 256, kernel_size=3, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2),
+
+            nn.Conv2d(256, 512, kernel_size=3, padding=1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2)
+        )
+        
+        # Для классификации (лицо или фон)
+        self.classifier = nn.Sequential(
+            nn.Linear(512 * 4 * 4, 1024),  # Предположим, что размер входного изображения 96x96
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.5),
+            nn.Linear(1024, 512),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.5),
+            nn.Linear(512, 2)
+        )
+
+        # Для локализации (ограничивающая рамка лица: x, y, width, height)
+        self.regressor = nn.Sequential(
+            nn.Linear(512 * 4 * 4, 1024),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.5),
+            nn.Linear(1024, 512),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.5),
+            nn.Linear(512, 4)
+        )
+
+    def forward(self, x):
+        x = self.conv_layers(x)
+        x = x.view(x.shape[0], -1)  # Преобразуем в 1D тензор
+        classification_output = self.classifier(x)
+        regression_output = self.regressor(x)
+        return classification_output, regression_output
+
+
+def combined_loss(pred_class, pred_bbox, target):
+    # Разделяем целевой тензор на класс и ограничивающую рамку
+    target_class = target[:, 0].long()
+    target_bbox = target[:, 1:]
+
+    # Вычисляем потерю для классификации
+    loss_class = F.cross_entropy(pred_class, target_class)
+
+    # Вычисляем потерю для регрессии
+    loss_bbox = F.smooth_l1_loss(pred_bbox, target_bbox)
+
+    # Комбинируем потери
+    combined = loss_class + loss_bbox
+
+    return combined

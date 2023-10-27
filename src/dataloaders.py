@@ -242,8 +242,8 @@ image_dir_for_ten_thousand_dataset = f"{root}data/face-detection-dataset/images"
 csv_file_path_for_ten_thousand_dataset = f"{root}data/face-detection-dataset/labels_and_coordinates.csv"
 
 TenThousandFace_dataset = TenThousandFaceDataSet(csv_file=csv_file_path_for_ten_thousand_dataset, image_dir=image_dir_for_ten_thousand_dataset, transform=transform, transform_bbox=None)
-ThreeThousandFace_dataset = FacesDataset(image_path, y_labels, None, transform, img_size, img_size)
-dataset_of_backgrounds = BackgroundDataset(backg_image_path, transform, img_size, img_size)
+ThreeThousandFace_dataset = FacesDataset(image_path, y_labels, None, transform)
+# dataset_of_backgrounds = BackgroundDataset(backg_image_path, transform, img_size, img_size)
 
 d1 = RoomImgDataset(folder_path=f'{root}data/house-rooms-image-dataset/House_Room_Dataset/Bathroom', transform=transform)
 d2 = RoomImgDataset(folder_path=f'{root}data/house-rooms-image-dataset/House_Room_Dataset/Bedroom', transform=transform)
