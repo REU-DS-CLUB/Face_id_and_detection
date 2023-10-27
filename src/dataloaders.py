@@ -23,13 +23,10 @@ import albumentations as A
 
 config = utils.get_options()
 
-if config['use_colab']:
-    image_path, y_labels = utils.get_detection_dataset_for_colab()
-    backg_image_path = utils.get_background_dataset_for_colab()
-else:
-    y_labels = pd.read_csv('data/data_detection/faces.csv')
-    image_path = 'data/data_detection/images'
-    backg_image_path = 'data/data_background'
+y_labels = pd.read_csv('/content/Face_id_and_detection/data/human-faces-object-detection/faces.csv')
+image_path = '/content/Face_id_and_detection/data/human-faces-object-detection/images'
+backg_image_path = '/content/Face_id_and_detection/data/house-rooms-image-dataset/House_Room_Dataset'
+
 
 
 class FacesDataset(Dataset):

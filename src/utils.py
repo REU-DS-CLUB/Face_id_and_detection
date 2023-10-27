@@ -112,9 +112,9 @@ def preprocessing_of_face_detection_dataset():
 
     for name in ['labels', 'images']:
         move_all_files(name)
-        print(f'done with {name}')
+        
 
-    print('starting last section')
+    
         # Папки с файлами .txt и папка с изображениями
     labels2_dir = "/content/Face_id_and_detection/data/face-detection-dataset/labels2"
 
@@ -160,7 +160,7 @@ def colab():
 
     preprocessing_of_face_detection_dataset()
 
-    print('done with colab')
+    print('\n DONE WITH COLAB')
 
 
 
@@ -333,3 +333,5 @@ def crop(pic, coords, scale=2, size=256):
     res = tf.functional.resized_crop(pic, y0, x0, min(side, pic_height), min(side, pic_width), size=size)
     
     return res, center
+
+
