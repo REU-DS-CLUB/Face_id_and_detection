@@ -11,6 +11,9 @@ import torchvision
 import torchvision.transforms as tf
 import torch
 import zipfile
+import os
+import shutil
+import csv
 
 
 def get_options():
@@ -37,6 +40,8 @@ def execute_terminal_comands(commands):
 
 
 def download_dataset_from_kaggle(full_name_of_dataset, name_of_dataset ):
+
+    print(f'начинаю скачачивать датасет: {name_of_dataset}')
 
     download_face_detection_dataset = [
         f"kaggle datasets download -d {full_name_of_dataset}",
@@ -76,8 +81,76 @@ def download_datasets_from_kaggle():
     
 
 
+def preprocessing_of_face_detection_dataset():
+    print('Начинаю обработку датасета face_detection_dataset')
+
+    def move_all_files(name):
+        # Пути к папкам train и val
+        train_path = f"/content/data/face-detection-dataset/{name}/train"
+        val_path = f"/content/data/face-detection-dataset/{name}/val"
+
+        # Функция для перемещения файлов из source_dir в target_dir
+        def move_files(source_dir, target_dir):
+            # Получаем список файлов в исходной директории
+            files = os.listdir(source_dir)
+
+            # Перемещаем каждый файл в целевую директорию
+            for file_name in files:
+                source_file = os.path.join(source_dir, file_name)
+                target_file = os.path.join(target_dir, file_name)
+                shutil.move(source_file, target_file)
+
+        # Перемещаем файлы из папки train в /content/data/face-detection-dataset/labels/
+        move_files(train_path, "/content/data/face-detection-dataset/{name}/")
+
+        # Перемещаем файлы из папки val в /content/data/face-detection-dataset/labels/
+        move_files(val_path, "/content/data/face-detection-dataset/{name}/")
+
+        # Удаляем пустые папки train и val
+        os.rmdir(train_path)
+        os.rmdir(val_path)
+
+    for name in ['labels', 'images']:
+        move_all_files(name)
+
+        # Папки с файлами .txt и папка с изображениями
+    labels2_dir = "/content/data/face-detection-dataset/labels2"
 
 
+    # Путь к итоговому CSV файлу
+    csv_file_path = "/content/data/face-detection-dataset/labels_and_coordinates.csv"
+
+    # Открываем CSV файл для записи
+    with open(csv_file_path, mode='w', newline='') as csv_file:
+        fieldnames = ['name', 'x1', 'y1', 'x2', 'y2']
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+
+        # Записываем заголовки CSV файла
+        writer.writeheader()
+
+        # Проходим по каждому файлу .txt в папке labels2
+        for filename in os.listdir(labels2_dir):
+            if filename.endswith(".txt"):
+                file_path = os.path.join(labels2_dir, filename)
+
+                # Открываем файл .txt для чтения
+                with open(file_path, 'r') as txt_file:
+                    lines = txt_file.readlines()
+
+                    # Проверяем количество строк в файле
+                    if len(lines) <= 2:
+                        # Получаем имя файла без расширения
+                        name = filename[:-4]
+
+                        # Получаем x1, y1, x2, y2 из первой строки
+                        parts = lines[0].split()
+                        if len(parts) == 6 and parts[0] == "Human" and parts[1] == "face":
+                            x1, y1, x2, y2 = map(float, parts[2:])
+
+                            # Записываем данные в CSV файл
+                            writer.writerow({'name': name, 'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2})
+
+    print(f"Данные записаны в {csv_file_path}")
 
 def get_detection_dataset_for_colab():
     from google.colab import files
