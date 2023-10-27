@@ -31,7 +31,7 @@ backg_image_path = '/content/Face_id_and_detection/data/house-rooms-image-datase
 
 class FacesDataset(Dataset):
 
-    def __init__(self, images_path, dataset, transform, height=64, width=64):
+    def __init__(self, images_path, dataset, transform_bbox, transform, height=64, width=64):
         ''' Loading dataset
         images_path: path where images are stored
         dataset: dataframe where image names and box bounds are stored
@@ -51,6 +51,7 @@ class FacesDataset(Dataset):
         self.images_names = [image.name for image in self.images_list]
         self.bboxes_names = dataset['image_name'].tolist()
 
+        self.transform_bbox = transform_bbox
         self.transform = transform
 
    # cut down to only images present in dataset
@@ -88,7 +89,7 @@ class FacesDataset(Dataset):
             bbox = torch.tensor([1, x0, y0, x1, y1]).float()
             break
 
-        items = self.transform(image=np.transpose(img, (1, 2, 0)), bboxes=[list(bbox[1:])], class_labels=[1])
+        items = self.transform_bbox(image=np.transpose(img, (1, 2, 0)), bboxes=[list(bbox[1:])], class_labels=[1])
         img = np.transpose(items['image'], (2, 0, 1)) # converting back to CHW format
 
         if len(items['bboxes']) > 0:
@@ -96,6 +97,9 @@ class FacesDataset(Dataset):
         else:
             bbox = [0, -1, -1, -1, -1] # if bbox is too small after the augmentation we drop the bbox
 
+        if self.transform:
+            img = self.transform(img)
+            
         return img, bbox
 
     def __len__(self):
