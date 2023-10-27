@@ -23,6 +23,9 @@ import albumentations as A
 
 config = utils.get_options()
 
+batch_size = config['batch_size']
+img_size = config['img_size']
+
 if config['use_colab']:
     root = '/content/Face_id_and_detection/'
 else:
@@ -38,7 +41,7 @@ backg_image_path = f'{root}data/house-rooms-image-dataset/House_Room_Dataset'
 
 class FacesDataset(Dataset):
 
-    def __init__(self, images_path, dataset, transform_bbox, transform, height=64, width=64):
+    def __init__(self, images_path, dataset, transform_bbox, transform):
         ''' Loading dataset
         images_path: path where images are stored
         dataset: dataframe where image names and box bounds are stored
@@ -50,8 +53,7 @@ class FacesDataset(Dataset):
         '''
         self.images_path = Path(images_path)
         self.dataset = dataset
-        self.height = height
-        self.width = width
+
         self.n_samples = dataset.shape[0]
 
         self.images_list = sorted(list(self.images_path.glob('*.jpg')))
@@ -93,6 +95,7 @@ class FacesDataset(Dataset):
             bbox = torch.tensor([1, x0, y0, x1, y1]).float()
             break
 
+
         if self.transform_bbox:
             items = self.transform_bbox(image=np.transpose(img, (1, 2, 0)), bboxes=[list(bbox[1:])], class_labels=[1])
             img = items['image'] # converting back to CHW format
@@ -101,6 +104,7 @@ class FacesDataset(Dataset):
                 bbox = torch.tensor([1] + list(items['bboxes'][0]))
             else:
                 bbox = torch.tensor([0, -1, -1, -1, -1]) # if bbox is too small after the augmentation we drop the bbox
+
 
         if self.transform:
             img = self.transform(img)
@@ -176,11 +180,6 @@ class RoomImgDataset(Dataset):
         return img, torch.tensor([0, -1, -1, -1, -1])
 
 
-
-
-
-
-# Определение пользовательского датасета
 class TenThousandFaceDataSet(Dataset):
     def __init__(self, csv_file, image_dir, transform=None, transform_bbox=None):
         self.data = pd.read_csv(csv_file)
@@ -223,9 +222,6 @@ class TenThousandFaceDataSet(Dataset):
         return image, bbox
 
 
-
-
-
 transform_faces = A.Compose([
     A.Rotate(limit=30, p=0.5),
     A.RandomBrightnessContrast(brightness_limit=1, contrast_limit=1, p=0.5),
@@ -236,12 +232,9 @@ transform_faces = A.Compose([
 
 transform = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Resize((128, 128))
+    transforms.Resize((img_size, img_size))
 ])
 
-
-batch_size = config['batch_size']
-img_size = config['img_size']
 
 
 # Путь к папке с изображениями и CSV файлу

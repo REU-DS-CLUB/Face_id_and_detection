@@ -52,11 +52,9 @@ def download_dataset_from_kaggle(full_name_of_dataset, name_of_dataset ):
         "mkdir data",
         f"mv {name_of_dataset}.zip data/"
         ]
-    
-    print('start executed')
+  
     d = execute_terminal_comands(download_face_detection_dataset)
-    print(d)
-    print('executed')
+ 
 
     data_path = Path("data/")
     image_path = data_path / name_of_dataset
@@ -90,6 +88,7 @@ def download_datasets_from_kaggle():
 
 def preprocessing_of_face_detection_dataset():
     print('Начинаю обработку датасета face_detection_dataset')
+    
     if config['use_colab']:
         root = '/content/Face_id_and_detection/'
     else:
