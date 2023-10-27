@@ -41,7 +41,7 @@ def execute_terminal_comands(commands):
 
 def download_dataset_from_kaggle(full_name_of_dataset, name_of_dataset ):
 
-    print(f'начинаю скачачивать датасет: {name_of_dataset}')
+    print(f'\nНачинаю скачачивать датасет: {name_of_dataset}')
 
     download_face_detection_dataset = [
         f"kaggle datasets download -d {full_name_of_dataset}",
@@ -86,8 +86,8 @@ def preprocessing_of_face_detection_dataset():
 
     def move_all_files(name):
         # Пути к папкам train и val
-        train_path = f"/content/data/face-detection-dataset/{name}/train"
-        val_path = f"/content/data/face-detection-dataset/{name}/val"
+        train_path = f"/content/Face_id_and_detection/data/face-detection-dataset/{name}/train"
+        val_path = f"/content/Face_id_and_detection/data/face-detection-dataset/{name}/val"
 
         # Функция для перемещения файлов из source_dir в target_dir
         def move_files(source_dir, target_dir):
@@ -101,10 +101,10 @@ def preprocessing_of_face_detection_dataset():
                 shutil.move(source_file, target_file)
 
         # Перемещаем файлы из папки train в /content/data/face-detection-dataset/labels/
-        move_files(train_path, "/content/data/face-detection-dataset/{name}/")
+        move_files(train_path, f"/content/Face_id_and_detection/data/face-detection-dataset/{name}/")
 
         # Перемещаем файлы из папки val в /content/data/face-detection-dataset/labels/
-        move_files(val_path, "/content/data/face-detection-dataset/{name}/")
+        move_files(val_path, f"/content/Face_id_and_detection/data/face-detection-dataset/{name}/")
 
         # Удаляем пустые папки train и val
         os.rmdir(train_path)
@@ -112,13 +112,15 @@ def preprocessing_of_face_detection_dataset():
 
     for name in ['labels', 'images']:
         move_all_files(name)
+        print(f'done with {name}')
 
+    print('starting last section')
         # Папки с файлами .txt и папка с изображениями
-    labels2_dir = "/content/data/face-detection-dataset/labels2"
+    labels2_dir = "/content/Face_id_and_detection/data/face-detection-dataset/labels2"
 
 
     # Путь к итоговому CSV файлу
-    csv_file_path = "/content/data/face-detection-dataset/labels_and_coordinates.csv"
+    csv_file_path = "/content/Face_id_and_detection/data/face-detection-dataset/labels_and_coordinates.csv"
 
     # Открываем CSV файл для записи
     with open(csv_file_path, mode='w', newline='') as csv_file:
@@ -157,6 +159,8 @@ def colab():
     download_datasets_from_kaggle()
 
     preprocessing_of_face_detection_dataset()
+
+    print('done with colab')
 
 
 
