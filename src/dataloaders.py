@@ -22,10 +22,14 @@ import albumentations as A
 
 
 config = utils.get_options()
-
-y_labels = pd.read_csv('/content/Face_id_and_detection/data/human-faces-object-detection/faces.csv')
-image_path = '/content/Face_id_and_detection/data/human-faces-object-detection/images'
-backg_image_path = '/content/Face_id_and_detection/data/house-rooms-image-dataset/House_Room_Dataset'
+if config['use_colab']:
+    y_labels = pd.read_csv('/content/Face_id_and_detection/data/human-faces-object-detection/faces.csv')
+    image_path = '/content/Face_id_and_detection/data/human-faces-object-detection/images'
+    backg_image_path = '/content/Face_id_and_detection/data/house-rooms-image-dataset/House_Room_Dataset'
+else:
+    y_labels = pd.read_csv('data/data_detection/faces.csv')
+    image_path = 'data/data_detection/images'
+    backg_image_path = 'data/House_Room_Dataset'
 
 
 
@@ -70,9 +74,6 @@ class FacesDataset(Dataset):
         img = cv2.imread(str(image_path))
         # by default in cv2 represents image in BGR order, so we have to convert it back to RGB
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        img = cv2.resize(img, (self.width, self.height)).astype(np.float32)
-        img /= 255.0  # normalizing values
-        img = np.transpose(img, (2, 0, 1))  # converting to CHW format
 
         image_labels = self.dataset[self.dataset['image_name'] == image_name]
 
@@ -81,25 +82,26 @@ class FacesDataset(Dataset):
             cur_height = image_labels['height'].iloc[i]
             cur_width = image_labels['width'].iloc[i]
 
-            x0 = (image_labels['x0'].iloc[i] / cur_width) * self.width
-            y0 = (image_labels['y0'].iloc[i] / cur_height) * self.height
-            x1 = (image_labels['x1'].iloc[i] / cur_width) * self.width
-            y1 = (image_labels['y1'].iloc[i] / cur_height) * self.height
+            x0 = (image_labels['x0'].iloc[i] / cur_width) 
+            y0 = (image_labels['y0'].iloc[i] / cur_height) 
+            x1 = (image_labels['x1'].iloc[i] / cur_width) 
+            y1 = (image_labels['y1'].iloc[i] / cur_height) 
 
             bbox = torch.tensor([1, x0, y0, x1, y1]).float()
             break
 
-        items = self.transform_bbox(image=np.transpose(img, (1, 2, 0)), bboxes=[list(bbox[1:])], class_labels=[1])
-        img = np.transpose(items['image'], (2, 0, 1)) # converting back to CHW format
+        if self.transform_bbox:
+            items = self.transform_bbox(image=np.transpose(img, (1, 2, 0)), bboxes=[list(bbox[1:])], class_labels=[1])
+            img = items['image'] # converting back to CHW format
 
-        if len(items['bboxes']) > 0:
-            bbox = torch.tensor([1] + list(items['bboxes'][0]))
-        else:
-            bbox = [0, -1, -1, -1, -1] # if bbox is too small after the augmentation we drop the bbox
+            if len(items['bboxes']) > 0:
+                bbox = torch.tensor([1] + list(items['bboxes'][0]))
+            else:
+                bbox = torch.tensor([0, -1, -1, -1, -1]) # if bbox is too small after the augmentation we drop the bbox
 
         if self.transform:
             img = self.transform(img)
-            
+
         return img, bbox
 
     def __len__(self):
@@ -155,18 +157,43 @@ transform_faces = A.Compose([
 ], bbox_params=A.BboxParams(format='pascal_voc', min_area=1024, min_visibility=0.1, label_fields=['class_labels']))
 
 transform_obj = transforms.Compose([
-    transforms.ToPILImage(),
-    transforms.RandomApply([transforms.RandomRotation(degrees=30), 
-                            transforms.ColorJitter(brightness=0.2, contrast=0.2),
-                            transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5))], p=0.5),
-    transforms.RandomHorizontalFlip(p=0.5),
-    transforms.ToTensor()
+
+    transforms.ToTensor(),
+    transforms.Resize((128, 128))
 ])
+
+class RoomImgDataset(Dataset):
+    def __init__(self, folder_path, transform=None):
+        self.folder_path = Path(folder_path)
+        self.image_files = sorted(os.listdir(folder_path))
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.image_files)
+
+    def __getitem__(self, idx):
+        img_path = self.folder_path / self.image_files[idx]
+        img = cv2.imread(str(img_path))
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        return img, torch.tensor([0, -1, -1, -1, -1])
 
 batch_size = config['batch_size']
 img_size = config['img_size']
-dataset_for_detection = FacesDataset(image_path, y_labels, transform_faces, img_size, img_size)
+
+dataset_for_detection = FacesDataset(image_path, y_labels, None, transform_obj, img_size, img_size)
 dataset_of_backgrounds = BackgroundDataset(backg_image_path, transform_obj, img_size, img_size)
 
-dataset = ConcatDataset([dataset_for_detection, dataset_of_backgrounds])
-dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+d1 = RoomImgDataset(folder_path='data/House_Room_Dataset/Bathroom', transform=transform_obj)
+d2 = RoomImgDataset(folder_path='data/House_Room_Dataset/Bedroom', transform=transform_obj)
+d3 = RoomImgDataset(folder_path='data/House_Room_Dataset/Dinning', transform=transform_obj)
+d4 = RoomImgDataset(folder_path='data/House_Room_Dataset/Kitchen', transform=transform_obj)
+d5 = RoomImgDataset(folder_path='data/House_Room_Dataset/Livingroom', transform=transform_obj)
+
+dataset = ConcatDataset([dataset_for_detection, d1, d2, d3, d4, d5])
+
+dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)

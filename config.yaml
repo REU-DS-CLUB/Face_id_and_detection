@@ -1,15 +1,15 @@
 
 
-use_colab: True
+use_colab: False
 use_supercomp: True
 device_num: 3
 
-img_size: 256
+img_size: 2128
 epochs: 10
-batch_size: 64
+batch_size: 4
 model: 0
 
-logging: True
+logging: False
 log_wieghts_interval: 5
 
 
