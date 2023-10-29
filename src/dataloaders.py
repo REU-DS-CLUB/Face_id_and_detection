@@ -18,7 +18,7 @@ import random
 import cv2
 import src.utils as utils
 from PIL import Image
-import albumentations as A
+#import albumentations as A
 
 
 config = utils.get_options()
@@ -222,12 +222,48 @@ class TenThousandFaceDataSet(Dataset):
         return image, bbox
 
 
-transform_faces = A.Compose([
-    A.Rotate(limit=30, p=0.5),
-    A.RandomBrightnessContrast(brightness_limit=1, contrast_limit=1, p=0.5),
-    A.Flip(p=0.5),
-    A.GaussianBlur(p=0.5)
-], bbox_params=A.BboxParams(format='pascal_voc', min_area=1024, min_visibility=0.1, label_fields=['class_labels']))
+class CelebATriplets(Dataset):
+    def __init__(self, images, triplets_path, width=128, height=128, transform = None):
+        self.images_path = Path(images)
+        self.triplets_path = Path(triplets_path)
+        self.triplets = pd.read_csv(self.triplets_path)
+        self.transform = transform
+        self.width = width
+        self.height = height
+
+    def __getitem__(self, index):
+        triplet = self.triplets[self.triplets.index == index]
+
+        def get_img(image_path):
+            img = cv2.imread(str(image_path))
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            img = cv2.resize(img, (self.width, self.height)).astype(np.float32)
+            img /= 255.0
+            img = np.transpose(img, (2, 0, 1))
+            return img
+        
+        anc_path = Path(triplet.anchor.values[0])
+        pos_path = Path(triplet.pos.values[0])
+        neg_path = Path(triplet.neg.values[0])
+
+        anc = get_img(self.images_path.joinpath(anc_path))
+        pos = get_img(self.images_path.joinpath(pos_path))
+        neg = get_img(self.images_path.joinpath(neg_path))
+
+        # pos_id = triplet.id2.values[0]
+        # neg_id = triplet.id3.values[0]
+        return [anc, pos, neg]
+
+    def __len__(self):
+        return len(self.triplets)
+
+
+# transform_faces = A.Compose([
+#     A.Rotate(limit=30, p=0.5),
+#     A.RandomBrightnessContrast(brightness_limit=1, contrast_limit=1, p=0.5),
+#     A.Flip(p=0.5),
+#     A.GaussianBlur(p=0.5)
+# ], bbox_params=A.BboxParams(format='pascal_voc', min_area=1024, min_visibility=0.1, label_fields=['class_labels']))
 
 
 transform = transforms.Compose([
@@ -236,7 +272,7 @@ transform = transforms.Compose([
 ])
 
 
-
+# --Detection Dataloader--
 # Путь к папке с изображениями и CSV файлу
 image_dir_for_ten_thousand_dataset = f"{root}data/face-detection-dataset/images"
 csv_file_path_for_ten_thousand_dataset = f"{root}data/face-detection-dataset/labels_and_coordinates.csv"
@@ -254,3 +290,14 @@ d5 = RoomImgDataset(folder_path=f'{root}data/house-rooms-image-dataset/House_Roo
 dataset = ConcatDataset([ThreeThousandFace_dataset,TenThousandFace_dataset, d1, d2, d3, d4, d5])
 
 dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)
+
+
+
+# --FaceId Dataloader--
+# celebA dataset 
+celeb_images = f"{root}data/CelebA FR Triplets/images"
+celeb_triplets_csv = f"{root}data/CelebA FR Triplets/triplets.csv"
+
+CelebA_dataset = CelebATriplets(celeb_images, celeb_triplets_csv)
+
+recognition_dataloader = DataLoader(dataset=CelebA_dataset, batch_size=batch_size, shuffle=True)
