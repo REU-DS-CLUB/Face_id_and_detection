@@ -18,7 +18,7 @@ import random
 import cv2
 import src.utils as utils
 from PIL import Image
-#import albumentations as A
+import albumentations as A
 
 
 config = utils.get_options()
@@ -183,7 +183,7 @@ class RoomImgDataset(Dataset):
 class TenThousandFaceDataSet(Dataset):
     def __init__(self, csv_file, image_dir, transform=None, transform_bbox=None):
         self.data = pd.read_csv(csv_file)
-        self.image_dir = image_dir
+        self.image_dir = Path(image_dir)
         self.transform = transform
         self.transform_bbox = transform_bbox
 
@@ -191,7 +191,7 @@ class TenThousandFaceDataSet(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        img_name = os.path.join(self.image_dir, f"{self.data.iloc[idx, 0]}.jpg")
+        img_name = os.path.join(self.image_dir.joinpath(f"{self.data.iloc[idx, 0]}"))
         image = Image.open(img_name)
 
         if image.mode != 'RGB':
@@ -199,7 +199,7 @@ class TenThousandFaceDataSet(Dataset):
 
 
         # Извлекаем координаты bbox из CSV файла
-        x1, y1, x2, y2 = self.data.iloc[idx, 1:].values.astype(np.float32)
+        x1, y1, x2, y2 = self.data.iloc[idx, 1:5].values.astype(np.float32)
         width, height = image.size
         # Создаем ограничивающий прямоугольник (bbox)
 
@@ -258,12 +258,12 @@ class CelebATriplets(Dataset):
         return len(self.triplets)
 
 
-# transform_faces = A.Compose([
-#     A.Rotate(limit=30, p=0.5),
-#     A.RandomBrightnessContrast(brightness_limit=1, contrast_limit=1, p=0.5),
-#     A.Flip(p=0.5),
-#     A.GaussianBlur(p=0.5)
-# ], bbox_params=A.BboxParams(format='pascal_voc', min_area=1024, min_visibility=0.1, label_fields=['class_labels']))
+transform_faces = A.Compose([
+    A.Rotate(limit=30, p=0.5),
+    A.RandomBrightnessContrast(brightness_limit=1, contrast_limit=1, p=0.5),
+    A.Flip(p=0.5),
+    A.GaussianBlur(p=0.5)
+], bbox_params=A.BboxParams(format='pascal_voc', min_area=1024, min_visibility=0.1, label_fields=['class_labels']))
 
 
 transform = transforms.Compose([

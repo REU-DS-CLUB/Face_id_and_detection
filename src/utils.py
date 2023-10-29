@@ -1,7 +1,6 @@
 import pandas as pd
 import yaml
 from datetime import datetime
-from comet_ml import Experiment
 from pathlib import Path
 import subprocess
 
