@@ -318,3 +318,62 @@ def crop(pic, coords, scale=2, size=256):
     return res, center
 
 
+class ContrastiveLoss(nn.Module):
+    
+    '''
+    margin - величина расстояния между позитивными и негативными образцами, которой мы пытаетмя добиться т.е. при лоссе, равном 0, 
+    расстояние от анкерного объекта до позитивного, будет на margin меньше, чем расстояние от анкерного до негативного
+    
+    emb_size - размер эмбеддинга, поступающего на вход
+    average - bool, способ агрегации функции потерь, если True, то среднее, 
+                                                     если False, то сумма  
+    '''
+    
+    def __init__(self, margin=2, average=True):
+        super().__init__()
+        
+        self.margin = margin
+        self.average = average
+        
+    def forward(self, anchor, x, similarity):
+
+        '''
+        similarity - метка класса, если 1, то x и анкер - один и тот же человек, 
+                                   если 0, то x и анкер - разные люди,
+        '''
+        
+        distance = ((anchor-x)**2).sum(axis=1).sqrt()
+        
+        result = similarity*distance**2 + (1-similarity)*F.relu(self.margin-distance)**2
+        return result.mean() if self.average else result.sum()
+    
+
+
+
+class TripletLoss(nn.Module):
+    
+    '''
+    margin - величина расстояния между позитивными и негативными образцами, которой мы пытаетмя добиться т.е. при лоссе, равном 0, 
+    расстояние от анкерного объекта до позитивного, будет на margin меньше, чем расстояние от анкерного до негативного
+    
+    emb_size - размер эмбеддинга, поступающего на вход
+    average - bool, способ агрегации функции потерь, если True, то среднее, если False, то сумма  
+    
+    '''
+    def __init__(self, emb_size = 512, margin=2, average=True):
+        super().__init__()
+        
+        self.margin = margin
+        self.average = average
+        self.emb_size = emb_size
+        
+    def forward(self, anchor, pos, neg):
+        anchor, pos, neg = anchor.view([-1, self.emb_size]), pos.view([-1, self.emb_size]), neg.view([-1, self.emb_size])
+        
+        positive_dist = ((anchor-pos)**2).sum(axis=1)
+        negative_dist = ((anchor-neg)**2).sum(axis=1)
+        
+        result = F.relu(positive_dist-negative_dist+self.margin)
+        return result.mean() if self.average else result.sum()
+
+
