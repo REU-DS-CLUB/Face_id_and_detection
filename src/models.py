@@ -239,6 +239,58 @@ class InspectorGadjet(nn.Module):
         return classification_output, regression_output
 
 
+class ConvEmbedding(nn.Module):
+    def __init__(self, pic_size=128, emb_size=512):
+        super().__init__()
+        
+        self.conv_layers = nn.Sequential(
+            nn.Conv2d(3, 32, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2),
+
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2),
+
+            nn.Conv2d(64, 128, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2),
+
+            nn.Conv2d(128, 256, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2),
+
+            nn.Conv2d(256, 512, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2)
+        )
+        
+        dims = int(pic_size/32)
+        self.emb_size = emb_size
+        
+        self.fc = nn.Linear(dims*dims*512, self.emb_size)
+
+    def forward(self, x):
+        x = self.conv_layers(x)
+        x = torch.flatten(x, start_dim=1)
+        x = self.fc(x)
+        return x
+
+class Triplet(nn.Module):
+    
+    def __init__(self, encoder):
+        super(Triplet, self).__init__()
+        
+        self.encoder = encoder
+        
+    def forward(self, anchor, pos, neg):
+        anchor_embedding = self.encoder(anchor)
+        pos_embedding = self.encoder(pos)
+        neg_embedding = self.encoder(neg)
+        
+        return anchor_embedding, pos_embedding, neg_embedding
+
+
 def combined_loss(pred_class, pred_bbox, target):
     # Разделяем целевой тензор на класс и ограничивающую рамку
     target_class = target[:, 0].long()
