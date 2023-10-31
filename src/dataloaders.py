@@ -31,8 +31,8 @@ if config['use_colab']:
 else:
     root = ''
 
-y_labels = pd.read_csv(f'{root}data/human-faces-object-detection/faces.csv')
 
+y_labels = pd.read_csv(f'{root}data/human-faces-object-detection/faces.csv')
 image_path = f'{root}data/human-faces-object-detection/images'
 backg_image_path = f'{root}data/house-rooms-image-dataset/House_Room_Dataset'
 
@@ -289,8 +289,7 @@ d5 = RoomImgDataset(folder_path=f'{root}data/house-rooms-image-dataset/House_Roo
 
 dataset = ConcatDataset([ThreeThousandFace_dataset,TenThousandFace_dataset, d1, d2, d3, d4, d5])
 
-dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)
-
+detection_dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)
 
 
 # --FaceId Dataloader--
