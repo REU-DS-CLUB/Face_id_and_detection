@@ -1,24 +1,19 @@
-import torch
-
-import zipfile
-from pathlib import Path
-
 import os
+from pathlib import Path
+import random
+
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import torch.nn as nn
+
+import torch
 from torchvision import models, transforms, datasets
 from torch.utils.data import DataLoader, Dataset, ConcatDataset
-from pathlib import Path
 
-from tqdm import tqdm
-import datetime
-import random
 import cv2
-import src.utils as utils
 from PIL import Image
 import albumentations as A
+
+import src.utils as utils
 
 
 config = utils.get_options()
@@ -31,9 +26,11 @@ if config['use_colab']:
 else:
     root = ''
 
-
+# пути к папкам датасета с 3к изображениям лиц
 y_labels = pd.read_csv(f'{root}data/human-faces-object-detection/faces.csv')
 image_path = f'{root}data/human-faces-object-detection/images'
+
+# путь к папке с картинками комнат
 backg_image_path = f'{root}data/house-rooms-image-dataset/House_Room_Dataset'
 
 

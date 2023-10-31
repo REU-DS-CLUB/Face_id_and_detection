@@ -1,26 +1,24 @@
-import torch
-
+import os
 import zipfile
 from pathlib import Path
-
-import os
+import datetime
+import random
 
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
+from PIL import Image
+import cv2
+
+
+import torch
 import torch.nn as nn
 from torchvision import models, transforms, datasets
 from torch.utils.data import DataLoader, Dataset
-
-from tqdm import tqdm
-import datetime
-import random
-import cv2
-
-import torch
 import torchvision.models
 import torchvision.transforms as transforms
 import torch.nn.functional as F
-from PIL import Image
+
 
 
 def get_pretrained_VGG16():

@@ -1,21 +1,20 @@
-import pandas as pd
+import os
 import yaml
 from datetime import datetime
 from pathlib import Path
 import subprocess
+import zipfile
+import shutil
+import csv
 
 import cv2
+import torch
 from numpy import inf
 import torch.nn as nn
 import torchvision
 import torchvision.transforms as tf
 import torch.nn.functional as F
-import torch
-import zipfile
-import os
-import shutil
-import csv
-import torchvision.transforms as tf
+
 
 
 def get_options():
@@ -26,6 +25,8 @@ def get_options():
 
 config = get_options()
 
+
+# функция загрузки файла kaggle.json
 def get_kaggle_json_file():
     from google.colab import files
     print('ЗАГРУЗИТЕ kaggle.json ФАЙЛ')
@@ -36,7 +37,7 @@ def get_kaggle_json_file():
         print('User uploaded file "{name}" with length {length} bytes'.format(
             name=fn, length=len(uploaded[fn])))
 
-
+# функция исполнения команд в консоли
 def execute_terminal_comands(commands):
     r= []
     for command in commands:
@@ -44,6 +45,7 @@ def execute_terminal_comands(commands):
     return r
 
 
+#Функция загрузки отдельного датасета
 def download_dataset_from_kaggle(full_name_of_dataset, name_of_dataset ):
 
     print(f'\nНачинаю скачачивать датасет: {name_of_dataset}')
@@ -53,10 +55,10 @@ def download_dataset_from_kaggle(full_name_of_dataset, name_of_dataset ):
         "mkdir data",
         f"mv {name_of_dataset}.zip data/"
         ]
-  
+    
     d = execute_terminal_comands(download_face_detection_dataset)
  
-
+    # разархивирование датасета
     data_path = Path("data/")
     image_path = data_path / name_of_dataset
     with zipfile.ZipFile(data_path / f"{name_of_dataset}.zip", "r") as zip_ref:
@@ -86,7 +88,7 @@ def download_datasets_from_kaggle():
     download_dataset_from_kaggle('sbaghbidi/human-faces-object-detection', 'human-faces-object-detection')
     
 
-
+# препроцессинг датасета с 10к картинками для более удобной работы с ним
 def preprocessing_of_face_detection_dataset():
     print('Начинаю обработку датасета face_detection_dataset')
     
@@ -166,7 +168,7 @@ def preprocessing_of_face_detection_dataset():
     print(f"Данные записаны в {csv_file_path}")
 
 
-
+# функция для проверки и дозагрузки датасетов на локальную машину
 def check_if_datasets_are_downloaded():
 
     if not os.path.exists('/.kaggle/kaggle.json'):
@@ -199,16 +201,17 @@ def check_if_datasets_are_downloaded():
 
     print('\nall datasets are in place')
 
-
+# полный цикл загрузки и обработки датасетов для колаба
 def colab():
 
     download_datasets_from_kaggle()
 
     preprocessing_of_face_detection_dataset()
+
     print('\nall a datasets are in place')
     print('\n DONE WITH COLAB')
 
-
+# функция сохранения промежуточного итога при обучении модели детекции
 def save_img(img, pred, epoch):
     have_face = pred[0]
     if have_face: 
@@ -219,6 +222,7 @@ def save_img(img, pred, epoch):
         pil_image.save(image_path)
 
 
+# функция изменения размеров bbox под размер изображения с камеры 
 def rescale_coordinates(tensor, original_shape=(720, 1280), model_shape=(126, 126)):
     # Извлекаем координаты из тензора
     x1, y1, x2, y2 = tensor[0][1:]
