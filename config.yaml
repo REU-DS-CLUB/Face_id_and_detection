@@ -5,6 +5,7 @@ use_supercomp: True
 device_num: 3
 
 img_size: 128
+img_size_recog: 128
 epochs: 10
 batch_size: 4
 model: 0

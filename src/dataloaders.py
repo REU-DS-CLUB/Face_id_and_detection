@@ -20,6 +20,7 @@ config = utils.get_options()
 
 batch_size = config['batch_size']
 img_size = config['img_size']
+img_size_recog = config['img_size_recog']
 
 if config['use_colab']:
     root = '/content/Face_id_and_detection/'
@@ -220,7 +221,7 @@ class TenThousandFaceDataSet(Dataset):
 
 
 class CelebATriplets(Dataset):
-    def __init__(self, images, triplets_path, width=128, height=128, transform = None):
+    def __init__(self, images, triplets_path, width, height, transform = None):
         self.images_path = Path(images)
         self.triplets_path = Path(triplets_path)
         self.triplets = pd.read_csv(self.triplets_path)
@@ -294,6 +295,6 @@ detection_dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffl
 celeb_images = f"{root}data/CelebA FR Triplets/images"
 celeb_triplets_csv = f"{root}data/CelebA FR Triplets/triplets.csv"
 
-CelebA_dataset = CelebATriplets(celeb_images, celeb_triplets_csv)
+CelebA_dataset = CelebATriplets(celeb_images, celeb_triplets_csv, img_size_recog, img_size_recog)
 
 recognition_dataloader = DataLoader(dataset=CelebA_dataset, batch_size=batch_size, shuffle=True)
