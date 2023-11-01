@@ -41,9 +41,10 @@ def get_kaggle_json_file():
         print('User uploaded file "{name}" with length {length} bytes'.format(
             name=fn, length=len(uploaded[fn])))
 
+
 # функция исполнения команд в консоли
 def execute_terminal_comands(commands):
-    r= []
+    r = []
     for command in commands:
         r.append(subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True))
     return r
@@ -90,6 +91,9 @@ def download_datasets_from_kaggle():
 
     # Скачать датасет с лицами 3к
     download_dataset_from_kaggle('sbaghbidi/human-faces-object-detection', 'human-faces-object-detection')
+
+    # Скачать датасет с триплетами селебА
+    download_dataset_from_kaggle('/quadeer15sh/celeba-face-recognition-triplets', 'celeba-face-recognition-triplets')
     
 
 # препроцессинг датасета с 10к картинками для более удобной работы с ним
@@ -131,7 +135,6 @@ def preprocessing_of_face_detection_dataset():
         move_all_files(name)
         
 
-    
     # Папки с файлами .txt и папка с изображениями
     labels2_dir = f"{root}data/face-detection-dataset/labels2"
 
@@ -186,7 +189,6 @@ def check_if_datasets_are_downloaded():
         execute_terminal_comands(move_kaggle_json_file)
 
 
-
     #check if three thausand dataset exists
     if not os.path.exists('data/human-faces-object-detection'):
         print('\nDOWNLOADING three thausand dataset')
@@ -203,7 +205,13 @@ def check_if_datasets_are_downloaded():
         download_dataset_from_kaggle('fareselmenshawii/face-detection-dataset', 'face-detection-dataset')
         preprocessing_of_face_detection_dataset()
 
+    #check if celebA triplets dataset exists
+    if not os.path.exists('data/celeba-face-recognition-triplets'):
+        print('\nDOWNLOADING celeba-face-recognition-triplets')
+        download_dataset_from_kaggle('/quadeer15sh/celeba-face-recognition-triplets', 'celeba-face-recognition-triplets')
+
     print('\nall datasets are in place')
+
 
 # полный цикл загрузки и обработки датасетов для колаба
 def colab():
@@ -214,6 +222,7 @@ def colab():
 
     print('\nall a datasets are in place')
     print('\n DONE WITH COLAB')
+
 
 # функция сохранения промежуточного итога при обучении модели детекции
 def save_img(img, pred, epoch):
@@ -291,8 +300,6 @@ def cam_capture(source=0, model=None, bbox_func=None, limit=inf):
 
     cap.release()
     cv2.destroyAllWindows()
-
-
 
 
 def crop(pic, coords, scale=2, size=256):
@@ -376,8 +383,6 @@ class ContrastiveLoss(nn.Module):
         result = similarity*distance**2 + (1-similarity)*F.relu(self.margin-distance)**2
         return result.mean() if self.average else result.sum()
     
-
-
 
 class TripletLoss(nn.Module):
     
