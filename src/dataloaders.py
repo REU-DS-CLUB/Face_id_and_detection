@@ -38,7 +38,7 @@ backg_image_path = f'{root}data/house-rooms-image-dataset/House_Room_Dataset'
 
 class FacesDataset(Dataset):
 
-    def __init__(self, images_path, dataset, transform_bbox, transform):
+    def __init__(self, images_path, dataset, transform_bbox, transform, height, width):
         ''' Loading dataset
         images_path: path where images are stored
         dataset: dataframe where image names and box bounds are stored
@@ -60,6 +60,9 @@ class FacesDataset(Dataset):
         self.transform_bbox = transform_bbox
         self.transform = transform
 
+        self.height = height
+        self.width = width
+
    # cut down to only images present in dataset
 
         self.images = []
@@ -76,6 +79,10 @@ class FacesDataset(Dataset):
         img = cv2.imread(str(image_path))
         # by default in cv2 represents image in BGR order, so we have to convert it back to RGB
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        
+        img = cv2.resize(img, (250, 250)).astype(np.float32)
+        img /= 255.0 # normalizing values
+        # img = np.transpose(img, (2, 0, 1))
 
         image_labels = self.dataset[self.dataset['image_name'] == image_name]
 
@@ -84,17 +91,18 @@ class FacesDataset(Dataset):
             cur_height = image_labels['height'].iloc[i]
             cur_width = image_labels['width'].iloc[i]
 
-            x0 = (image_labels['x0'].iloc[i] / cur_width) 
-            y0 = (image_labels['y0'].iloc[i] / cur_height) 
-            x1 = (image_labels['x1'].iloc[i] / cur_width) 
-            y1 = (image_labels['y1'].iloc[i] / cur_height) 
+            x0 = (int(image_labels['x0'].iloc[i]) / cur_width) * self.width
+            y0 = (int(image_labels['y0'].iloc[i]) / cur_height) * self.height
+            x1 = (int(image_labels['x1'].iloc[i]) / cur_width)  * self.width
+            y1 = (int(image_labels['y1'].iloc[i]) / cur_height) * self.height
 
             bbox = torch.tensor([1, x0, y0, x1, y1]).float()
             break
 
 
         if self.transform_bbox:
-            items = self.transform_bbox(image=np.transpose(img, (1, 2, 0)), bboxes=[list(bbox[1:])], class_labels=[1])
+            items = self.transform_bbox(image=img, bboxes=[list(bbox[1:])], class_labels=[1])
+            img = np.transpose(items['image'], (2, 0, 1)) 
             img = items['image'] # converting back to CHW format
 
             if len(items['bboxes']) > 0:
@@ -204,8 +212,8 @@ class TenThousandFaceDataSet(Dataset):
 
         if self.transform_bbox is not None:
           items = self.transform_bbox(image=np.transpose(image, (1, 2, 0)), bboxes=[list(bbox[1:])], class_labels=[1])
-          # img = np.transpose(items['image'], (2, 0, 1)) # converting back to HHWC format
-          print(items)
+          img = np.transpose(items['image'], (2, 0, 1)) 
+          img = items['image']
           if len(items['bboxes']) > 0:
               bbox = torch.tensor([1] + list(items['bboxes'][0]))
           else:
@@ -257,13 +265,14 @@ class CelebATriplets(Dataset):
 
 transform_faces = A.Compose([
     A.Rotate(limit=30, p=0.5),
-    A.RandomBrightnessContrast(brightness_limit=1, contrast_limit=1, p=0.5),
+    A.RandomBrightnessContrast(brightness_limit=0.5, contrast_limit=0.5, p=0.5),
     A.Flip(p=0.5),
     A.GaussianBlur(p=0.5)
-], bbox_params=A.BboxParams(format='pascal_voc', min_area=1024, min_visibility=0.1, label_fields=['class_labels']))
+], bbox_params=A.BboxParams(format='pascal_voc', min_visibility=0.1, label_fields=['class_labels'])) # min_area=1024 min_visibility=0.1
 
 
 transform = transforms.Compose([
+    transforms.RandomCrop((256, 256)),
     transforms.ToTensor(),
     transforms.Resize((img_size, img_size))
 ])
@@ -275,8 +284,8 @@ image_dir_for_ten_thousand_dataset = f"{root}data/face-detection-dataset/images"
 csv_file_path_for_ten_thousand_dataset = f"{root}data/face-detection-dataset/labels_and_coordinates.csv"
 
 TenThousandFace_dataset = TenThousandFaceDataSet(csv_file=csv_file_path_for_ten_thousand_dataset, image_dir=image_dir_for_ten_thousand_dataset, transform=transform, transform_bbox=None)
-ThreeThousandFace_dataset = FacesDataset(image_path, y_labels, None, transform)
-# dataset_of_backgrounds = BackgroundDataset(backg_image_path, transform, img_size, img_size)
+ThreeThousandFace_dataset = FacesDataset(image_path, y_labels, transform_faces, None, 256, 256)
+dataset_of_backgrounds = BackgroundDataset(backg_image_path, transform, img_size, img_size)
 
 d1 = RoomImgDataset(folder_path=f'{root}data/house-rooms-image-dataset/House_Room_Dataset/Bathroom', transform=transform)
 d2 = RoomImgDataset(folder_path=f'{root}data/house-rooms-image-dataset/House_Room_Dataset/Bedroom', transform=transform)
@@ -291,6 +300,7 @@ detection_dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffl
 
 # --FaceId Dataloader--
 # celebA dataset 
+
 celeb_images = f"{root}data/CelebA FR Triplets/images"
 celeb_triplets_csv = f"{root}data/CelebA FR Triplets/triplets.csv"
 

@@ -15,6 +15,10 @@ import torchvision
 import torchvision.transforms as tf
 import torch.nn.functional as F
 
+from torchvision.utils import draw_bounding_boxes 
+import matplotlib.pyplot as plt
+import numpy as np
+
 
 
 def get_options():
@@ -322,6 +326,25 @@ def crop(pic, coords, scale=2, size=256):
     res = tf.functional.resized_crop(pic, y0, x0, min(side, pic_height), min(side, pic_width), size=size)
     
     return res, center
+
+def visualize_img(batch, batch_size):
+
+    for num_img in range(batch_size):
+        img_tensor = batch[0][num_img] * 255
+
+        bbox = batch[1][num_img, 1:]
+        bbox = bbox.unsqueeze(0)
+        
+        img_tensor = np.transpose(img_tensor, (2, 0, 1)) 
+        img = draw_bounding_boxes(img_tensor.type(torch.uint8), bbox, width=5, 
+                                colors="green",  
+                                fill=True) 
+        
+        img = torchvision.transforms.ToPILImage()(img) 
+        plt.subplot(2, 3, num_img+1)
+        plt.imshow(img)
+        plt.axis(False)
+    plt.show()
 
 
 class ContrastiveLoss(nn.Module):
