@@ -35,8 +35,6 @@ image_path = f'{root}data/human-faces-object-detection/images'
 backg_image_path = f'{root}data/house-rooms-image-dataset/House_Room_Dataset'
 
 
-
-
 class FacesDataset(Dataset):
 
     def __init__(self, images_path, dataset, transform_bbox, transform):
@@ -85,28 +83,27 @@ class FacesDataset(Dataset):
             cur_height = image_labels['height'].iloc[i]
             cur_width = image_labels['width'].iloc[i]
 
-            x0 = (image_labels['x0'].iloc[i] / cur_width) 
-            y0 = (image_labels['y0'].iloc[i] / cur_height) 
-            x1 = (image_labels['x1'].iloc[i] / cur_width) 
-            y1 = (image_labels['y1'].iloc[i] / cur_height) 
+            x0 = (image_labels['x0'].iloc[i] / cur_width)
+            y0 = (image_labels['y0'].iloc[i] / cur_height)
+            x1 = (image_labels['x1'].iloc[i] / cur_width)
+            y1 = (image_labels['y1'].iloc[i] / cur_height)
 
             bbox = torch.tensor([1, x0, y0, x1, y1]).float()
             break
 
-
         if self.transform_bbox:
-            items = self.transform_bbox(image=np.transpose(img, (1, 2, 0)), bboxes=[list(bbox[1:])], class_labels=[1])
-            img = items['image'] # converting back to CHW format
+            items = self.transform_bbox(image=np.transpose(img, (1, 2, 0)), bboxes=[
+                                        list(bbox[1:])], class_labels=[1])
+            img = items['image']  # converting back to CHW format
 
             if len(items['bboxes']) > 0:
                 bbox = torch.tensor([1] + list(items['bboxes'][0]))
             else:
-                bbox = torch.tensor([0, -1, -1, -1, -1]) # if bbox is too small after the augmentation we drop the bbox
-
+                # if bbox is too small after the augmentation we drop the bbox
+                bbox = torch.tensor([0, -1, -1, -1, -1])
 
         if self.transform:
             img = self.transform(img)
-
 
         return img, bbox
 
@@ -125,7 +122,8 @@ class BackgroundDataset(Dataset):
         self.width = width
         self.transform = transform
 
-        self.types = ['Bathroom', 'Bedroom', 'Dinning', 'Kitchen', 'Livingroom']
+        self.types = ['Bathroom', 'Bedroom',
+                      'Dinning', 'Kitchen', 'Livingroom']
 
         images_path = []
         for type in self.types:
@@ -145,16 +143,15 @@ class BackgroundDataset(Dataset):
         img = cv2.resize(img, (self.width, self.height)).astype(np.float32)
         img /= 255.0
         img = np.transpose(img, (2, 0, 1))
-        
-        img = torch.tensor(img) 
+
+        img = torch.tensor(img)
         img = self.transform(img)
-        img = np.transpose(img, (0, 1, 2)) # converting back to CHW format
+        img = np.transpose(img, (0, 1, 2))  # converting back to CHW format
 
         return img, torch.tensor([0, -1, -1, -1, -1]).float()
 
     def __len__(self):
         return self.n_samples
-
 
 
 class RoomImgDataset(Dataset):
@@ -170,7 +167,6 @@ class RoomImgDataset(Dataset):
         img_path = self.folder_path / self.image_files[idx]
         img = cv2.imread(str(img_path))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
 
         if self.transform is not None:
             img = self.transform(img)
@@ -189,12 +185,12 @@ class TenThousandFaceDataSet(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        img_name = os.path.join(self.image_dir.joinpath(f"{self.data.iloc[idx, 0]}"))
+        img_name = os.path.join(
+            self.image_dir.joinpath(f"{self.data.iloc[idx, 0]}"))
         image = Image.open(img_name)
 
         if image.mode != 'RGB':
             image = image.convert('RGB')
-
 
         # Извлекаем координаты bbox из CSV файла
         x1, y1, x2, y2 = self.data.iloc[idx, 1:5].values.astype(np.float32)
@@ -204,14 +200,15 @@ class TenThousandFaceDataSet(Dataset):
         bbox = torch.Tensor([1, x1/width, y1/height, x2/width, y2/height])
 
         if self.transform_bbox is not None:
-          items = self.transform_bbox(image=np.transpose(image, (1, 2, 0)), bboxes=[list(bbox[1:])], class_labels=[1])
-          # img = np.transpose(items['image'], (2, 0, 1)) # converting back to HHWC format
-          print(items)
-          if len(items['bboxes']) > 0:
-              bbox = torch.tensor([1] + list(items['bboxes'][0]))
-          else:
-              bbox = torch.tensor([0, -1, -1, -1, -1]) # if bbox is too small after the augmentation we drop the bbox
-
+            items = self.transform_bbox(image=np.transpose(image, (1, 2, 0)), bboxes=[
+                                        list(bbox[1:])], class_labels=[1])
+            # img = np.transpose(items['image'], (2, 0, 1)) # converting back to HHWC format
+            print(items)
+            if len(items['bboxes']) > 0:
+                bbox = torch.tensor([1] + list(items['bboxes'][0]))
+            else:
+                # if bbox is too small after the augmentation we drop the bbox
+                bbox = torch.tensor([0, -1, -1, -1, -1])
 
         # Применяем преобразования к изображению (если указаны)
         if self.transform:
@@ -221,7 +218,7 @@ class TenThousandFaceDataSet(Dataset):
 
 
 class CelebATriplets(Dataset):
-    def __init__(self, images, triplets_path, width, height, transform = None):
+    def __init__(self, images, triplets_path, width, height, transform=None):
         self.images_path = Path(images)
         self.triplets_path = Path(triplets_path)
         self.triplets = pd.read_csv(self.triplets_path)
@@ -239,7 +236,7 @@ class CelebATriplets(Dataset):
             img /= 255.0
             img = np.transpose(img, (2, 0, 1))
             return img
-        
+
         anc_path = Path(triplet.anchor.values[0])
         pos_path = Path(triplet.pos.values[0])
         neg_path = Path(triplet.neg.values[0])
@@ -275,26 +272,36 @@ transform = transforms.Compose([
 image_dir_for_ten_thousand_dataset = f"{root}data/face-detection-dataset/images"
 csv_file_path_for_ten_thousand_dataset = f"{root}data/face-detection-dataset/labels_and_coordinates.csv"
 
-TenThousandFace_dataset = TenThousandFaceDataSet(csv_file=csv_file_path_for_ten_thousand_dataset, image_dir=image_dir_for_ten_thousand_dataset, transform=transform, transform_bbox=None)
+TenThousandFace_dataset = TenThousandFaceDataSet(
+    csv_file=csv_file_path_for_ten_thousand_dataset, image_dir=image_dir_for_ten_thousand_dataset, transform=transform, transform_bbox=None)
 ThreeThousandFace_dataset = FacesDataset(image_path, y_labels, None, transform)
 # dataset_of_backgrounds = BackgroundDataset(backg_image_path, transform, img_size, img_size)
 
-d1 = RoomImgDataset(folder_path=f'{root}data/house-rooms-image-dataset/House_Room_Dataset/Bathroom', transform=transform)
-d2 = RoomImgDataset(folder_path=f'{root}data/house-rooms-image-dataset/House_Room_Dataset/Bedroom', transform=transform)
-d3 = RoomImgDataset(folder_path=f'{root}data/house-rooms-image-dataset/House_Room_Dataset/Dinning', transform=transform)
-d4 = RoomImgDataset(folder_path=f'{root}data/house-rooms-image-dataset/House_Room_Dataset/Kitchen', transform=transform)
-d5 = RoomImgDataset(folder_path=f'{root}data/house-rooms-image-dataset/House_Room_Dataset/Livingroom', transform=transform)
+d1 = RoomImgDataset(
+    folder_path=f'{root}data/house-rooms-image-dataset/House_Room_Dataset/Bathroom', transform=transform)
+d2 = RoomImgDataset(
+    folder_path=f'{root}data/house-rooms-image-dataset/House_Room_Dataset/Bedroom', transform=transform)
+d3 = RoomImgDataset(
+    folder_path=f'{root}data/house-rooms-image-dataset/House_Room_Dataset/Dinning', transform=transform)
+d4 = RoomImgDataset(
+    folder_path=f'{root}data/house-rooms-image-dataset/House_Room_Dataset/Kitchen', transform=transform)
+d5 = RoomImgDataset(
+    folder_path=f'{root}data/house-rooms-image-dataset/House_Room_Dataset/Livingroom', transform=transform)
 
-dataset = ConcatDataset([ThreeThousandFace_dataset,TenThousandFace_dataset, d1, d2, d3, d4, d5])
+dataset = ConcatDataset(
+    [ThreeThousandFace_dataset, TenThousandFace_dataset, d1, d2, d3, d4, d5])
 
-detection_dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)
+detection_dataloader = DataLoader(
+    dataset=dataset, batch_size=batch_size, shuffle=True)
 
 
 # --FaceId Dataloader--
-# celebA dataset 
-celeb_images = f"{root}data/CelebA FR Triplets/images"
-celeb_triplets_csv = f"{root}data/CelebA FR Triplets/triplets.csv"
+# celebA dataset
+celeb_images = f"{root}data/celeba-face-recognition-triplets/images"
+celeb_triplets_csv = f"{root}data/celeba-face-recognition-triplets/triplets.csv"
 
-CelebA_dataset = CelebATriplets(celeb_images, celeb_triplets_csv, img_size_recog, img_size_recog)
+CelebA_dataset = CelebATriplets(
+    celeb_images, celeb_triplets_csv, img_size_recog, img_size_recog)
 
-recognition_dataloader = DataLoader(dataset=CelebA_dataset, batch_size=batch_size, shuffle=True)
+recognition_dataloader = DataLoader(
+    dataset=CelebA_dataset, batch_size=batch_size, shuffle=True)
