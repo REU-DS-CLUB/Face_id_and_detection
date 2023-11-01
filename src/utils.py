@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-
+# функция для загрузки конфига
 def get_options():
     options_path = 'config.yaml'
     with open(options_path, 'r') as option_file:
@@ -29,6 +29,14 @@ def get_options():
 
 config = get_options()
 
+
+
+
+
+
+
+
+### ФУНКЦИИ ДЛЯ СКАЧИВАНИЯ И ОБРАБОТКИ ДАТАСЕТОВ ###
 
 # функция загрузки файла kaggle.json
 def get_kaggle_json_file():
@@ -206,7 +214,7 @@ def check_if_datasets_are_downloaded():
         preprocessing_of_face_detection_dataset()
 
     #check if celebA triplets dataset exists
-    if not os.path.exists('data/celeba-face-recognition-triplets'):
+    if not os.path.exists('data/CelebA FR Triplets'):
         print('\nDOWNLOADING celeba-face-recognition-triplets')
         download_dataset_from_kaggle('/quadeer15sh/celeba-face-recognition-triplets', 'celeba-face-recognition-triplets')
 
@@ -222,6 +230,15 @@ def colab():
 
     print('\nall a datasets are in place')
     print('\n DONE WITH COLAB')
+
+
+
+
+
+
+
+
+### ФУНКЦИИ ДЛЯ РАБОТЫ ###
 
 
 # функция сохранения промежуточного итога при обучении модели детекции
@@ -341,8 +358,9 @@ def visualize_img(batch, batch_size):
 
         bbox = batch[1][num_img, 1:]
         bbox = bbox.unsqueeze(0)
+        print('bbox - ', bbox)
         
-        img_tensor = np.transpose(img_tensor, (2, 0, 1)) 
+        # img_tensor = np.transpose(img_tensor, (2, 0, 1)) 
         img = draw_bounding_boxes(img_tensor.type(torch.uint8), bbox, width=5, 
                                 colors="green",  
                                 fill=True) 

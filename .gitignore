@@ -2,6 +2,7 @@ data/
 checkpoints/
 secrets.json
 kaggle.json
+test.ipynb
 *.pth
 # Byte-compiled / optimized / DLL files
 __pycache__/
