@@ -85,14 +85,16 @@ class ThreeThousandFaceDataSet(Dataset):
         # by default in cv2 represents image in BGR order, so we have to convert it back to RGB
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         
-        
+        # извлекаем ширину и высоту текущего изображения
+        cur_height, cur_width = img.shape[:2]
+
         # img = img.astype(float) / 255.0   # custom normalization
         
         image_labels = self.dataset[self.dataset['image_name'] == image_name]
 
         for i in range(len(image_labels)):
-            cur_height = image_labels['height'].iloc[i]
-            cur_width = image_labels['width'].iloc[i]
+            # cur_height = image_labels['height'].iloc[i]
+            # cur_width = image_labels['width'].iloc[i]
 
             x0 = (int(image_labels['x0'].iloc[i]) / cur_width) * self.size
             y0 = (int(image_labels['y0'].iloc[i]) / cur_height) * self.size
@@ -105,12 +107,16 @@ class ThreeThousandFaceDataSet(Dataset):
         # at this point we have img as RGB like np.array not normalized and
         # bbox as np.array
 
+        # resize изображение, чтобы применить albumentations
+        img = cv2.resize(img, (self.size, self.size))
+
         if self.transform_bbox:
             items = self.transform_bbox(image=img, bboxes=[bbox[1:]], class_labels=[1])
             img = items['image'] 
 
             if len(items['bboxes']) > 0:
                 bbox = [1] + list(items['bboxes'][0])
+                # bbox = list(items['bboxes'][0])
             else:
                 # if bbox is too small after the augmentation we drop the bbox
                 bbox = [0, -1, -1, -1, -1]
@@ -138,7 +144,7 @@ class BackgroundDataset(Dataset):
                       'Dinning', 'Kitchen', 'Livingroom']
         
         images_path = []
-        
+
         for type in self.types:
             type_folder = os.path.join(folder_path, type)
             images = os.listdir(type_folder)
@@ -156,6 +162,8 @@ class BackgroundDataset(Dataset):
         image_path = self.images_path[index]
         img = cv2.imread(str(image_path))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        img = cv2.resize(img, (self.size, self.size))
 
         if self.transform:
             img = self.transform(img)
@@ -206,7 +214,8 @@ class TenThousandFaceDataSet(Dataset):
 
         # img = img.astype(float) / 255.0   # custom normalization
         
-        
+        img = cv2.resize(img, (self.size, self.size))
+
         # apply transform for bbox if needed
         if self.transform_bbox is not None:
             items = self.transform_bbox(img=np.transpose(img, (1, 2, 0)), bboxes=[
@@ -266,17 +275,16 @@ class CelebATriplets(Dataset):
 
 ### TRANSFORMS SECTION ###
 transform_faces = A.Compose([
-    # A.Rotate(limit=30, p=0.5),
-    # A.RandomBrightnessContrast(brightness_limit=0.5, contrast_limit=0.5, p=0.5),
-    # A.Flip(p=0.5),
-    A.ShiftScaleRotate(shift_limit=0.5, p=1.0),
-    A.GaussianBlur(p=0.5)
+    A.Rotate(limit=30, p=0.5),
+    A.RandomBrightnessContrast(brightness_limit=0.5, contrast_limit=0.5, p=0.5),
+    A.Flip(p=0.5),
+    A.ShiftScaleRotate(shift_limit=0.5, p=0.7),
+    A.GaussianBlur(p=0.01)
 ], bbox_params=A.BboxParams(format='pascal_voc', min_visibility=0.1, label_fields=['class_labels'])) # min_area=1024 min_visibility=0.1
 
 #transform for each img 
 transform = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Resize((img_size, img_size)), 
     transforms.Lambda(lambda x: x / 255.0), # normalization
 ])
 
@@ -293,7 +301,7 @@ Ten_Thousand_Face_dataset = TenThousandFaceDataSet(
 
 #dataset for 10000 img with faces
 Three_Thousand_Face_dataset = ThreeThousandFaceDataSet(image_path, y_labels, 
-                                                       transform, transform_bbox=None)
+                                                       transform, transform_bbox=transform_faces)
 
 #dataset with backgrounds img
 dataset_of_backgrounds = BackgroundDataset(backg_image_path, transform)
@@ -301,6 +309,7 @@ dataset_of_backgrounds = BackgroundDataset(backg_image_path, transform)
 #concatinating all datasets
 dataset = ConcatDataset(
     [Three_Thousand_Face_dataset, Ten_Thousand_Face_dataset, dataset_of_backgrounds])
+dataset = Three_Thousand_Face_dataset
 
 detection_dataloader = DataLoader(
     dataset=dataset, batch_size=batch_size, shuffle=True)

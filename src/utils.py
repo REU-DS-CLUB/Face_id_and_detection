@@ -17,6 +17,7 @@ import torch.nn.functional as F
 
 from torchvision.utils import draw_bounding_boxes 
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import numpy as np
 
 
@@ -351,25 +352,31 @@ def crop(pic, coords, scale=2, size=256):
     
     return res, center
 
-def visualize_img(batch, batch_size):
+def plot_images_with_bboxes(batch):
+    """
+    :param images: Tensor of shape (batch_size, channels, height, width)
+    :param bboxes: Tensor of shape (batch_size, num_boxes, 4)
+    """
+    # bboxes= list(bboxes[0]
+    images, bboxes = batch[0], batch[1]
+    
+    # Convert tensor to numpy array for plotting
+    images_np = images.numpy()*255
+    
+    print(bboxes)
+    for i in range(images.size(0)):
+        plt.figure(figsize=(10,10))
 
-    for num_img in range(batch_size):
-        img_tensor = batch[0][num_img] * 255
-
-        bbox = batch[1][num_img, 1:]
-        bbox = bbox.unsqueeze(0)
-        print('bbox - ', bbox)
+        image = np.transpose(images_np[i], (1, 2, 0)) # Convert to (height, width, channels)
+        plt.imshow(image)
         
-        # img_tensor = np.transpose(img_tensor, (2, 0, 1)) 
-        img = draw_bounding_boxes(img_tensor.type(torch.uint8), bbox, width=5, 
-                                colors="green",  
-                                fill=True) 
         
-        img = torchvision.transforms.ToPILImage()(img) 
-        plt.subplot(2, 3, num_img+1)
-        plt.imshow(img)
-        plt.axis(False)
-    plt.show()
+        x1, y1, x2, y2 = bboxes[i][1:]
+        rect = patches.Rectangle((x1, y1), x2-x1, y2-y1, linewidth=1, edgecolor='r', facecolor='none')
+        plt.gca().add_patch(rect)
+        
+        plt.axis('off')
+        plt.show()
 
 
 class ContrastiveLoss(nn.Module):
