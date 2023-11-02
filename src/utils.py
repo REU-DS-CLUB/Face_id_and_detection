@@ -225,10 +225,10 @@ def check_if_datasets_are_downloaded():
         download_dataset_from_kaggle('fareselmenshawii/face-detection-dataset', 'face-detection-dataset')
         preprocessing_of_face_detection_dataset()
 
-    #check if celebA triplets dataset exists
-    if not os.path.exists('data/celeba-face-recognition-triplets'):
-        print('\nDOWNLOADING celeba-face-recognition-triplets')
-        download_dataset_from_kaggle('/quadeer15sh/celeba-face-recognition-triplets', 'celeba-face-recognition-triplets')
+    # #check if celebA triplets dataset exists
+    # if not os.path.exists('data/celeba-face-recognition-triplets'):
+    #     print('\nDOWNLOADING celeba-face-recognition-triplets')
+    #     download_dataset_from_kaggle('/quadeer15sh/celeba-face-recognition-triplets', 'celeba-face-recognition-triplets')
 
     print('\nall datasets are in place')
 
