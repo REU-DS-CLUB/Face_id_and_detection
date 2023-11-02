@@ -215,7 +215,7 @@ class InspectorGadjet(nn.Module):
             nn.Linear(1024, 512),
             nn.ReLU(inplace=True),
             nn.Dropout(0.5),
-            nn.Linear(512, 2)
+            nn.Linear(512, 1)
         )
 
         # Для локализации (ограничивающая рамка лица: x, y, width, height)
@@ -293,9 +293,9 @@ def combined_loss(pred_class, pred_bbox, target):
     # Разделяем целевой тензор на класс и ограничивающую рамку
     target_class = target[:, 0].long()
     target_bbox = target[:, 1:]
-
+    
     # Вычисляем потерю для классификации
-    loss_class = F.cross_entropy(pred_class, target_class)
+    loss_class = F.binary_cross_entropy(pred_class, target_class)
 
     # Вычисляем потерю для регрессии
     loss_bbox = F.smooth_l1_loss(pred_bbox, target_bbox)

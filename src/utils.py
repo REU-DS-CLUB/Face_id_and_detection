@@ -19,7 +19,7 @@ from torchvision.utils import draw_bounding_boxes
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
-
+from torchvision import transforms
 
 # функция для загрузки конфига
 def get_options():
@@ -31,7 +31,10 @@ def get_options():
 config = get_options()
 
 
-
+transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Lambda(lambda x: x / 255.0), # normalization
+])
 
 
 
@@ -254,15 +257,20 @@ def save_img(img, pred, epoch):
 
 
 # функция изменения размеров bbox под размер изображения с камеры 
-def rescale_coordinates(tensor, original_shape=(720, 1280), model_shape=(126, 126)):
+def rescale_coordinates(tensor, original_shape=(720, 1280), model_shape=(128, 128)):
     # Извлекаем координаты из тензора
-    x1, y1, x2, y2 = tensor[0][1:]
+    print('given tensor - ', tensor)
 
+    x1, y1, x2, y2 = tensor[1][0]
+    print('extracted xes - ', x1, y1, x2, y2 )
+    x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+    print('int xes coord - ', x1, y1, x2, y2)
     # Масштабирование координат
     x1 = int((x1 / model_shape[1]) * original_shape[1])
     y1 = int((y1 / model_shape[0]) * original_shape[0])
     x2 = int((x2 / model_shape[1]) * original_shape[1])
     y2 = int((y2 / model_shape[0]) * original_shape[0])
+    print('final coord - ', x1, y1, x2, y2)
 
     return [x1, y1, x2, y2]
 
@@ -295,12 +303,9 @@ def cam_capture(source=0, model=None, bbox_func=None, limit=inf):
         # Изменяем размер изображения до 126x126
         resized_frame = cv2.resize(rgb_frame, (128, 128))
         
-        
+        pic_tens = transform(resized_frame)
 
-        pic_tens = tf.ToTensor()(resized_frame)
-        
-        
-
+    
         with torch.no_grad():
 
             res = model(pic_tens.unsqueeze(0))
@@ -315,6 +320,7 @@ def cam_capture(source=0, model=None, bbox_func=None, limit=inf):
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         i += 1
+       
 
     cap.release()
     cv2.destroyAllWindows()
