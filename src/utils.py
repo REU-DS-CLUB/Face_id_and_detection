@@ -258,6 +258,7 @@ def save_img(img, pred, epoch):
     
     cur_height, cur_width = img.shape[:2]
     
+    
     # Convert prediction tensor to a list of bounding box coordinates
     bbox = pred.tolist()
     x1, y1, x2, y2 = bbox
@@ -306,16 +307,17 @@ def save_img_after_epoch(path_to_img, mdl, epoch, device):
 
 
 # функция изменения размеров bbox под размер изображения с камеры 
-def rescale_coordinates(bbox,size,  original_shape=(720, 1280), model_shape=(config['img_size'], config['img_size'])):
+def rescale_coordinates(bbox, size,  original_shape=(720, 1280), model_shape=(config['img_size'], config['img_size'])):
     # Извлекаем координаты из тензора
     height, width = size[:2]
+    # height, width = height *1.25, width *1.7
     x1, y1, x2, y2 = bbox
     
     # Масштабирование координат
-    x1 = int((x1 / model_shape[1]) * width)
-    y1 = int((y1 / model_shape[0]) * height)
-    x2 = int((x2 / model_shape[1]) * width)
-    y2 = int((y2 / model_shape[0]) * height)
+    x1 = int((x1 / 128) * width)
+    y1 = int((y1 / 128) * height)
+    x2 = int((x2 / 128) * width)
+    y2 = int((y2 / 128) * height)
     
 
     return [x1, y1, x2, y2]
@@ -358,8 +360,11 @@ def cam_capture(source=0, model=None, bbox_func=None, limit=inf):
         
 
         bbox = res[1][0].tolist()
-        coord = rescale_coordinates(bbox, frame.shape)
+       
+        # bbox = res[0].tolist()[1:]
 
+        coord = rescale_coordinates(bbox, frame.shape)
+        
         cv2.rectangle(frame, (coord[0], coord[1]), ( coord[2], coord[3]), (0, 0, 255), 2)
         
   

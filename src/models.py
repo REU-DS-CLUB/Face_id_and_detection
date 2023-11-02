@@ -295,7 +295,7 @@ def combined_loss(pred_class, pred_bbox, target):
     target_bbox = target[:, 1:]  # Shape: [batch_size, 4]
 
     # Compute the classification loss
-    loss_class = F.mse_loss(pred_class, target_class)
+    loss_class = F.mse_loss(pred_class.squeeze(), target_class)
 
     # Compute the regression loss
     loss_bbox = F.smooth_l1_loss(pred_bbox, target_bbox)
