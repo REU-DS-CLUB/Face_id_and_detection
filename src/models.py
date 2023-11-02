@@ -291,20 +291,15 @@ class Triplet(nn.Module):
 
 def combined_loss(pred_class, pred_bbox, target):
     # Разделяем целевой тензор на класс и ограничивающую рамку
-    target_class = target[:, 0].view(-1, 1).float()  # Shape: [batch_size, 1]
+    target_class = target[:, 0].float()  # Shape: [batch_size, 1]
     target_bbox = target[:, 1:]  # Shape: [batch_size, 4]
 
     # Compute the classification loss
-    loss_class = F.binary_cross_entropy_with_logits(pred_class, target_class)
+    loss_class = F.mse_loss(pred_class, target_class)
 
     # Compute the regression loss
-    # Only consider positive samples (where target_class == 1) for regression
-    mask = target_class.squeeze(1) == 1
-    if mask.sum() > 0:  # If there are positive samples in the batch
-        loss_bbox = F.smooth_l1_loss(pred_bbox[mask], target_bbox[mask])
-    else:
-        loss_bbox = 0.0
-
+    loss_bbox = F.smooth_l1_loss(pred_bbox, target_bbox)
+    
     # Here, you can assign weights if you want to give different importance to the losses
     combined_loss = loss_class + loss_bbox
 
