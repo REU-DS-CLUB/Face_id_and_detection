@@ -309,7 +309,7 @@ dataset_of_backgrounds = BackgroundDataset(backg_image_path, transform)
 #concatinating all datasets
 dataset = ConcatDataset(
     [Three_Thousand_Face_dataset, Ten_Thousand_Face_dataset, dataset_of_backgrounds])
-dataset = Three_Thousand_Face_dataset
+
 
 detection_dataloader = DataLoader(
     dataset=dataset, batch_size=batch_size, shuffle=True)

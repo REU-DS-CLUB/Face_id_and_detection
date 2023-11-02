@@ -1,13 +1,13 @@
 
 
-use_colab: False
-use_supercomp: True
+use_colab: True
+use_supercomp: False
 device_num: 3
 
 img_size: 128
 img_size_recog: 128
-epochs: 10
-batch_size: 4
+epochs: 50
+batch_size: 16
 model: 0
 
 logging: False
