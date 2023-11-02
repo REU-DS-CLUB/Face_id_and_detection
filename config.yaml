@@ -1,6 +1,6 @@
 
 
-use_colab: True
+use_colab: False
 use_supercomp: False
 device_num: 3
 

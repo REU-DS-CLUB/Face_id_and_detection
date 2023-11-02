@@ -21,6 +21,14 @@ import matplotlib.patches as patches
 import numpy as np
 from torchvision import transforms
 
+
+import datetime
+import cv2
+from torchvision import transforms
+import torchvision 
+from PIL import Image, ImageDraw
+import numpy as np
+
 # функция для загрузки конфига
 def get_options():
     options_path = 'config.yaml'
@@ -245,15 +253,55 @@ def colab():
 ### ФУНКЦИИ ДЛЯ РАБОТЫ ###
 
 
-# функция сохранения промежуточного итога при обучении модели детекции
 def save_img(img, pred, epoch):
-    have_face = pred[0]
-    if have_face: 
-        box = torchvision.utils.draw_bounding_boxes(
-            img, [pred[1], pred[2], pred[3], pred[4]], colors='red')
-        pil_image = torchvision.transforms.ToPILImage()(box)
-        image_path = f"./results/epoch_{epoch}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        pil_image.save(image_path)
+    img = img.numpy() if isinstance(img, torch.Tensor) else img
+    
+    cur_height, cur_width = img.shape[:2]
+    
+    # Convert prediction tensor to a list of bounding box coordinates
+    bbox = pred.tolist()
+    x1, y1, x2, y2 = bbox
+    x1 = x1/128*cur_width
+    x2 = x2/128*cur_width
+    y1 = y1/128*cur_height
+    y2 = y2/128*cur_height
+    bbox = [x1, y1, x2, y2]
+
+    # bbox = [i/ for i in bbox]
+    
+    # Create a PIL Image from the numpy array
+    img = Image.fromarray(np.uint8(img))
+    
+    # Draw bounding boxes on the image
+    draw = ImageDraw.Draw(img)
+    draw.rectangle(bbox, outline="red")
+    save_path = f"./results/epoch_{epoch}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
+    # Create the directory if it doesn't exist
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    # Save the image to the specified path
+    img.save(save_path)
+    
+    # print(f"Saved image with bounding box to {save_path}")
+    
+
+def save_img_after_epoch(path_to_img, mdl, epoch):
+    
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Lambda(lambda x: x / 255.0), # normalization
+    ])
+    with torch.no_grad():
+        img = cv2.imread(path_to_img)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img_to_input = cv2.resize(img, (128, 128))
+
+        img_to_input = transform(img_to_input)
+
+        pred = mdl(img_to_input.unsqueeze(0))
+        
+
+        save_img(img, pred[1][0], epoch)
+
 
 
 # функция изменения размеров bbox под размер изображения с камеры 

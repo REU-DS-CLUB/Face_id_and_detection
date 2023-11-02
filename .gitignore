@@ -4,6 +4,7 @@ secrets.json
 kaggle.json
 test.ipynb
 *.pth
+results
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
