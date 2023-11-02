@@ -284,7 +284,7 @@ def save_img(img, pred, epoch):
     # print(f"Saved image with bounding box to {save_path}")
     
 
-def save_img_after_epoch(path_to_img, mdl, epoch):
+def save_img_after_epoch(path_to_img, mdl, epoch, device):
     
     transform = transforms.Compose([
         transforms.ToTensor(),
@@ -293,9 +293,10 @@ def save_img_after_epoch(path_to_img, mdl, epoch):
     with torch.no_grad():
         img = cv2.imread(path_to_img)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        img_to_input = cv2.resize(img, (128, 128))
+        img_to_input = cv2.resize(img, (config['img_size'], config['img_size']))
 
         img_to_input = transform(img_to_input)
+        img_to_input = img_to_input.to(device)
 
         pred = mdl(img_to_input.unsqueeze(0))
         
@@ -305,7 +306,7 @@ def save_img_after_epoch(path_to_img, mdl, epoch):
 
 
 # функция изменения размеров bbox под размер изображения с камеры 
-def rescale_coordinates(tensor, original_shape=(720, 1280), model_shape=(128, 128)):
+def rescale_coordinates(tensor, original_shape=(720, 1280), model_shape=(config['img_size'], config['img_size'])):
     # Извлекаем координаты из тензора
     print('given tensor - ', tensor)
 
