@@ -1,17 +1,21 @@
 
 
 use_colab: False
-use_supercomp: True
+use_supercomp: False
 device_num: 3
 
 img_size: 128
 img_size_recog: 128
-epochs: 10
-batch_size: 4
+batch_size: 16
 model: 0
 
-logging: False
-log_wieghts_interval: 5
+detection_epochs: 50
+detection_logging: False
+detection_log_wieghts_interval: 5
+
+recognition_epochs: 20
+recognition_logging: False
+recognition_log_wieghts_interval: 5
 
 
 

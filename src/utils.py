@@ -15,8 +15,13 @@ import torchvision
 import torchvision.transforms as tf
 import torch.nn.functional as F
 
+from torchvision.utils import draw_bounding_boxes 
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import numpy as np
 
 
+# функция для загрузки конфига
 def get_options():
     options_path = 'config.yaml'
     with open(options_path, 'r') as option_file:
@@ -25,6 +30,14 @@ def get_options():
 
 config = get_options()
 
+
+
+
+
+
+
+
+### ФУНКЦИИ ДЛЯ СКАЧИВАНИЯ И ОБРАБОТКИ ДАТАСЕТОВ ###
 
 # функция загрузки файла kaggle.json
 def get_kaggle_json_file():
@@ -89,7 +102,7 @@ def download_datasets_from_kaggle():
     download_dataset_from_kaggle('sbaghbidi/human-faces-object-detection', 'human-faces-object-detection')
 
     # Скачать датасет с триплетами селебА
-    download_dataset_from_kaggle('/quadeer15sh/celeba-face-recognition-triplets', 'celeba-face-recognition-triplets')
+    # download_dataset_from_kaggle('/quadeer15sh/celeba-face-recognition-triplets', 'celeba-face-recognition-triplets')
     
 
 # препроцессинг датасета с 10к картинками для более удобной работы с ним
@@ -220,6 +233,15 @@ def colab():
     print('\n DONE WITH COLAB')
 
 
+
+
+
+
+
+
+### ФУНКЦИИ ДЛЯ РАБОТЫ ###
+
+
 # функция сохранения промежуточного итога при обучении модели детекции
 def save_img(img, pred, epoch):
     have_face = pred[0]
@@ -329,6 +351,32 @@ def crop(pic, coords, scale=2, size=256):
     res = tf.functional.resized_crop(pic, y0, x0, min(side, pic_height), min(side, pic_width), size=size)
     
     return res, center
+
+def plot_images_with_bboxes(batch):
+    """
+    :param images: Tensor of shape (batch_size, channels, height, width)
+    :param bboxes: Tensor of shape (batch_size, num_boxes, 4)
+    """
+    # bboxes= list(bboxes[0]
+    images, bboxes = batch[0], batch[1]
+    
+    # Convert tensor to numpy array for plotting
+    images_np = images.numpy()*255
+    
+    print(bboxes)
+    for i in range(images.size(0)):
+        plt.figure(figsize=(10,10))
+
+        image = np.transpose(images_np[i], (1, 2, 0)) # Convert to (height, width, channels)
+        plt.imshow(image)
+        
+        
+        x1, y1, x2, y2 = bboxes[i][1:]
+        rect = patches.Rectangle((x1, y1), x2-x1, y2-y1, linewidth=1, edgecolor='r', facecolor='none')
+        plt.gca().add_patch(rect)
+        
+        plt.axis('off')
+        plt.show()
 
 
 class ContrastiveLoss(nn.Module):
