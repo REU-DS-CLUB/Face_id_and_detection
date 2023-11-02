@@ -381,15 +381,15 @@ def cam_capture(source=0, model=None, bbox_func=None, limit=inf):
 def crop(pic, coords, scale=2, size=256):
     
     '''
-    pic - входное изображение PIL
+    pic - входное изображение tensor
     coords - координаты рамки
     scale - фактор скалирования рамки (то, во сколько раз обрезанное изображение больше рамки)
     size - размер выходного изображение
     
     '''
     
-    pic_width = pic.size[0]
-    pic_height = pic.size[1]
+    pic_width = pic.shape[2]
+    pic_height = pic.shape[1]
         
     
     center = (0.5*(coords[2]+coords[0]), 
@@ -406,9 +406,80 @@ def crop(pic, coords, scale=2, size=256):
     x0 = max(0, bot_right[0] - side)
     y0 = max(0, bot_right[1] - side)
     
-    res = tf.functional.resized_crop(pic, y0, x0, min(side, pic_height), min(side, pic_width), size=size)
+    res = tf.functional.resized_crop(pic, 
+                                     int(y0), 
+                                     int(x0), 
+                                     int(min(side, pic_height)), 
+                                     int(min(side, pic_width)), 
+                                     size=size)
     
-    return res, center
+    return res
+
+def recognition_cam(source=0, 
+                model=None,
+                embedding_model=None, 
+                base = None,
+                limit=inf):
+
+    """""
+    source - источник видео, если 0,то это камера ноутбука
+    model - модель, выдающая координаты
+    embedding_model - модель для эмбеддингов
+    base = тензор размера (кол-во лиц)x(размер эмбеддинга), скрипт вернёт индекс самого близкого к инпуту эмбеддинга
+    ### по индексу потом можно вызывать конкретное имя ###
+    limit - количество милисекунд, в течение которых работает камера
+
+    """""
+
+    cap = cv2.VideoCapture(source)
+    i = 0 
+
+    while i<=limit:
+
+        ret, frame = cap.read()
+
+        if not ret:
+            print("Failed to grab frame")
+            break
+
+        
+        # Преобразуем изображение из BGR в RGB
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # Изменяем размер изображения до 128x128
+        resized_frame = cv2.resize(rgb_frame, (128, 128))
+
+
+        pic_tens = tf.ToTensor()(resized_frame)
+
+
+        with torch.no_grad():
+            res = model(pic_tens)
+        
+        coord = rescale_coordinates(res)
+
+
+        cropped = crop(tf.ToTensor()(rgb_frame), coord, size=128, scale=1.2).unsqueeze(0)
+
+
+        embedding = embedding_model(cropped)
+        distances = (base-embedding).pow(2).sum(axis=1)
+        person_id = torch.argmin(distances).item()
+
+      
+        cv2.rectangle(frame, (coord[0], coord[1]), (coord[2], coord[3]), (0, 0, 255), 2)
+        cv2.putText(frame , f'{person_id}', (coord[0], coord[1]), cv2.FONT_HERSHEY_SIMPLEX, 1, 255)
+
+        
+        cv2.imshow("Camera Feed with BBox", frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+        i += 1
+    
+    cap.release()
+    cv2.destroyAllWindows()
+
+
 
 def plot_images_with_bboxes(batch):
     """
