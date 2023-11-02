@@ -217,13 +217,13 @@ class TenThousandFaceDataSet(Dataset):
         img = cv2.resize(img, (self.size, self.size))
 
         # apply transform for bbox if needed
-        if self.transform_bbox is not None:
-            items = self.transform_bbox(img=np.transpose(img, (1, 2, 0)), bboxes=[
-                                        bbox[1:]], class_labels=[1])
-            # img = np.transpose(items['image'], (2, 0, 1)) # converting back to HHWC format
-            print(items)
+        if self.transform_bbox:
+            items = self.transform_bbox(image=img, bboxes=[bbox[1:]], class_labels=[1])
+            img = items['image'] 
+
             if len(items['bboxes']) > 0:
                 bbox = [1] + list(items['bboxes'][0])
+                # bbox = list(items['bboxes'][0])
             else:
                 # if bbox is too small after the augmentation we drop the bbox
                 bbox = [0, -1, -1, -1, -1]
@@ -297,7 +297,7 @@ transform = transforms.Compose([
 Ten_Thousand_Face_dataset = TenThousandFaceDataSet(
     csv_file=csv_file_path_for_ten_thousand_dataset, 
     image_dir=image_dir_for_ten_thousand_dataset, 
-    transform=transform, transform_bbox=None)
+    transform=transform, transform_bbox=transform_faces)
 
 #dataset for 10000 img with faces
 Three_Thousand_Face_dataset = ThreeThousandFaceDataSet(image_path, y_labels, 
@@ -317,10 +317,10 @@ detection_dataloader = DataLoader(
 
 # --FaceId Dataloader--
 # celebA dataset
-celeb_images = f"{root}data/CelebA FR Triplets/images"
-celeb_triplets_csv = f"{root}data/CelebA FR Triplets/triplets.csv"
+# celeb_images = f"{root}data/CelebA FR Triplets/images"
+# celeb_triplets_csv = f"{root}data/CelebA FR Triplets/triplets.csv"
 
-CelebA_dataset = CelebATriplets(celeb_images, celeb_triplets_csv)
+# CelebA_dataset = CelebATriplets(celeb_images, celeb_triplets_csv)
 
-recognition_dataloader = DataLoader(
-    dataset=CelebA_dataset, batch_size=batch_size, shuffle=True)
+# recognition_dataloader = DataLoader(
+#     dataset=CelebA_dataset, batch_size=batch_size, shuffle=True)
