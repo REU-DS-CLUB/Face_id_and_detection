@@ -211,10 +211,10 @@ class InspectorGadjet(nn.Module):
         self.classifier = nn.Sequential(
             nn.Linear(512 * 4 * 4, 1024),  # Предположим, что размер входного изображения 96x96
             nn.ReLU(inplace=True),
-            nn.Dropout(0.5),
+            nn.Dropout(0.05),
             nn.Linear(1024, 512),
             nn.Sigmoid(),
-            nn.Dropout(0.5),
+            nn.Dropout(0.05),
             nn.Linear(512, 1)
         )
 
@@ -222,10 +222,10 @@ class InspectorGadjet(nn.Module):
         self.regressor = nn.Sequential(
             nn.Linear(512 * 4 * 4, 1024),
             nn.ReLU(inplace=True),
-            nn.Dropout(0.5),
+            nn.Dropout(0.05),
             nn.Linear(1024, 512),
             nn.ReLU(inplace=True),
-            nn.Dropout(0.5),
+            nn.Dropout(0.05),
             nn.Linear(512, 4)
         )
 
@@ -234,7 +234,7 @@ class InspectorGadjet(nn.Module):
         x = x.view(x.shape[0], -1)  # Преобразуем в 1D тензор
         classification_output = self.classifier(x)
         regression_output = self.regressor(x)
-        return classification_output, regression_output
+        return torch.cat((classification_output, regression_output), dim=1)
 
 
 class ConvEmbedding(nn.Module):
