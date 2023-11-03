@@ -301,8 +301,8 @@ def save_img_after_epoch(path_to_img, mdl, epoch, device):
 
         pred = mdl(img_to_input.unsqueeze(0))
         
-
-        save_img(img, pred[1][0], epoch)
+      
+        save_img(img, pred[0][1:], epoch)
 
 
 
