@@ -328,10 +328,14 @@ train_detection_dataloader, test_detection_dataloader = get_train_test_dataloade
 
 # --FaceId Dataloader--
 # celebA dataset
+celeb_images = f"{root}data/celeba-face-recognition-triplets/CelebA FR Triplets/CelebA FR Triplets/images"
+celeb_triplets_csv = f"{root}data/celeba-face-recognition-triplets/CelebA FR Triplets/CelebA FR Triplets/triplets.csv"
+
 # celeb_images = f"{root}data/CelebA FR Triplets/images"
 # celeb_triplets_csv = f"{root}data/CelebA FR Triplets/triplets.csv"
 
-# CelebA_dataset = CelebATriplets(celeb_images, celeb_triplets_csv)
 
-# recognition_dataloader = DataLoader(
-#     dataset=CelebA_dataset, batch_size=batch_size, shuffle=True)
+CelebA_dataset = CelebATriplets(celeb_images, celeb_triplets_csv)
+
+recognition_dataloader = DataLoader(
+    dataset=CelebA_dataset, batch_size=batch_size, shuffle=True)

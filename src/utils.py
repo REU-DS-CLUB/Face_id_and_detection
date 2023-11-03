@@ -113,7 +113,7 @@ def download_datasets_from_kaggle():
     download_dataset_from_kaggle('sbaghbidi/human-faces-object-detection', 'human-faces-object-detection')
 
     # Скачать датасет с триплетами селебА
-    # download_dataset_from_kaggle('/quadeer15sh/celeba-face-recognition-triplets', 'celeba-face-recognition-triplets')
+    download_dataset_from_kaggle('quadeer15sh/celeba-face-recognition-triplets', 'celeba-face-recognition-triplets')
     
 
 # препроцессинг датасета с 10к картинками для более удобной работы с ним
