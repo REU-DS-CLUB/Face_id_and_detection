@@ -208,17 +208,17 @@ class InspectorGadjet(nn.Module):
         )
         
         # Для классификации (лицо или фон)
-        self.classifier = nn.Sequential(
-            nn.Linear(512 * 4 * 4, 1024),  # Предположим, что размер входного изображения 96x96
-            nn.ReLU(inplace=True),
-            nn.Dropout(0.05),
-            nn.Linear(1024, 512),
-            nn.Sigmoid(),
-            nn.Dropout(0.05),
-            nn.Linear(512, 1)
-        )
+        # self.classifier = nn.Sequential(
+        #     nn.Linear(512 * 4 * 4, 1024),  # Предположим, что размер входного изображения 96x96
+        #     nn.ReLU(inplace=True),
+        #     nn.Dropout(0.05),
+        #     nn.Linear(1024, 512),
+        #     nn.Sigmoid(),
+        #     nn.Dropout(0.05),
+        #     nn.Linear(512, 1)
+        # )
 
-        # Для локализации (ограничивающая рамка лица: x, y, width, height)
+        # Для локализации 
         self.regressor = nn.Sequential(
             nn.Linear(512 * 4 * 4, 1024),
             nn.ReLU(inplace=True),
@@ -226,15 +226,15 @@ class InspectorGadjet(nn.Module):
             nn.Linear(1024, 512),
             nn.ReLU(inplace=True),
             nn.Dropout(0.05),
-            nn.Linear(512, 4)
+            nn.Linear(512, 5)
         )
 
     def forward(self, x):
         x = self.conv_layers(x)
         x = x.view(x.shape[0], -1)  # Преобразуем в 1D тензор
-        classification_output = self.classifier(x)
+        # classification_output = self.classifier(x)
         regression_output = self.regressor(x)
-        return torch.cat((classification_output, regression_output), dim=1)
+        return regression_output
 
 
 class ConvEmbedding(nn.Module):
