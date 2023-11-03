@@ -276,7 +276,7 @@ def save_img(img, pred, epoch):
     # Draw bounding boxes on the image
     draw = ImageDraw.Draw(img)
     draw.rectangle(bbox, outline="red")
-    save_path = f"./results/epoch_{epoch}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
+    save_path = f"./results/{epoch}_epoch.jpg"
     # Create the directory if it doesn't exist
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     # Save the image to the specified path
@@ -358,13 +358,13 @@ def cam_capture(source=0, model=None, bbox_func=None, limit=inf):
 
             res = model(pic_tens.unsqueeze(0))
         
-
-        bbox = res[1][0].tolist()
-       
+        
+        bbox = res[0][1:].tolist()
+        print(bbox)
         # bbox = res[0].tolist()[1:]
 
         coord = rescale_coordinates(bbox, frame.shape)
-        
+        print(coord)
         cv2.rectangle(frame, (coord[0], coord[1]), ( coord[2], coord[3]), (0, 0, 255), 2)
         
   
@@ -565,3 +565,16 @@ class TripletLoss(nn.Module):
         return result.mean() if self.average else result.sum()
 
 
+def validate_model(model, test_dataloader, loss_fn, device):
+    model.eval()  # Переключение модели в режим оценки
+    total_loss = 0.0
+    with torch.no_grad():  # Выключение вычисления градиентов
+        for sample in test_dataloader:
+            img, box = sample[0].to(device), sample[1].to(device)
+            pred = model(img)
+            loss = loss_fn(pred, box)
+            total_loss += loss.item()
+    
+    avg_loss = total_loss / len(test_dataloader)  # Средняя потеря за эпоху
+    model.train()  # Вернуть модель в режим обучения
+    return avg_loss

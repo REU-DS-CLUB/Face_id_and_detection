@@ -9,7 +9,8 @@ import albumentations as A
 
 import torch
 from torchvision import transforms
-from torch.utils.data import DataLoader, Dataset, ConcatDataset
+from torch.utils.data import DataLoader, Dataset, ConcatDataset, random_split
+
 
 import src.utils as utils
 
@@ -312,9 +313,18 @@ dataset = ConcatDataset(
     [Ten_Thousand_Face_dataset, dataset_of_backgrounds])
 
 
-detection_dataloader = DataLoader(
-    dataset=dataset, batch_size=batch_size, shuffle=True)
+# detection_dataloader = DataLoader(
+#     dataset=dataset, batch_size=batch_size, shuffle=True)
 
+
+def get_train_test_dataloaders(dataset, test_size):
+    train_dataset, test_dataset = random_split(dataset, [1-test_size, test_size])
+    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+    return train_dataloader, test_dataloader
+
+train_detection_dataloader, test_detection_dataloader = get_train_test_dataloaders(dataset, 0.1)
 
 # --FaceId Dataloader--
 # celebA dataset
