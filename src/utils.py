@@ -307,17 +307,17 @@ def save_img_after_epoch(path_to_img, mdl, epoch, device):
 
 
 # функция изменения размеров bbox под размер изображения с камеры 
-def rescale_coordinates(bbox, size,  original_shape=(720, 1280), model_shape=(config['img_size'], config['img_size'])):
+def rescale_coordinates(bbox, size):
     # Извлекаем координаты из тензора
     height, width = size[:2]
     # height, width = height *1.25, width *1.7
     x1, y1, x2, y2 = bbox
     
     # Масштабирование координат
-    x1 = int((x1 / 128) * width)
-    y1 = int((y1 / 128) * height)
-    x2 = int((x2 / 128) * width)
-    y2 = int((y2 / 128) * height)
+    x1 = int((x1 / config['img_size']) * width)
+    y1 = int((y1 / config['img_size']) * height)
+    x2 = int((x2 / config['img_size']) * width)
+    y2 = int((y2 / config['img_size']) * height)
     
 
     return [x1, y1, x2, y2]
@@ -448,18 +448,33 @@ def recognition_cam(source=0,
 
         # Изменяем размер изображения до 128x128
         resized_frame = cv2.resize(rgb_frame, (128, 128))
+        
 
 
-        pic_tens = tf.ToTensor()(resized_frame)
-
+        # pic_tens = tf.ToTensor()(resized_frame)
+        pic_tens = transform(resized_frame)
 
         with torch.no_grad():
-            res = model(pic_tens)
+            res = model(pic_tens.unsqueeze(0))
         
-        coord = rescale_coordinates(res)
+        coord = rescale_coordinates(res[0][1:], frame.shape)
+        
 
-
+        
+        # cropped = crop(tf.ToTensor()(rgb_frame), coord, size=128, scale=1.2).unsqueeze(0)
         cropped = crop(tf.ToTensor()(rgb_frame), coord, size=128, scale=1.2).unsqueeze(0)
+        # print('cropped type - ', type(cropped), 'shape - ', cropped.shape)
+        # image = cropped.squeeze(0)
+
+        # image = image.permute(1, 2, 0).numpy()
+        # print(image)
+        # if i > 5 and i <10:
+        # # The image is now in the shape of HxWxC and ready to be plotted
+        #     plt.imshow(image)
+        #     plt.axis('off')  # Turn off the axis
+        #     plt.show()
+        
+        
 
 
         embedding = embedding_model(cropped)
