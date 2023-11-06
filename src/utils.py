@@ -503,6 +503,14 @@ def recognition_cam(source=0,
 
 
 def add2db(folder_path, model, rec_model):
+
+    """""
+    folder_path - путь к папке с фотографиями
+    model - модель, выдающая координаты
+    rec_model - модель для эмбеддингов
+
+    """""
+    
     pic_list = os.listdir(folder_path)
     database = pd.DataFrame(columns=range(512))
     cropped_dict = {}
