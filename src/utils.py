@@ -28,6 +28,7 @@ from torchvision import transforms
 import torchvision 
 from PIL import Image, ImageDraw
 import numpy as np
+import pandas as pd
 
 # функция для загрузки конфига
 def get_options():
@@ -411,28 +412,31 @@ def crop(pic, coords, scale=2, size=256):
                                      int(x0), 
                                      int(min(side, pic_height)), 
                                      int(min(side, pic_width)), 
-                                     size=size)
+                                     size=size,
+                                     antialias=True)
     
     return res
 
 def recognition_cam(source=0, 
                 model=None,
                 embedding_model=None, 
-                base = None,
+                database_path = None,
                 limit=inf):
 
     """""
     source - источник видео, если 0,то это камера ноутбука
     model - модель, выдающая координаты
     embedding_model - модель для эмбеддингов
-    base = тензор размера (кол-во лиц)x(размер эмбеддинга), скрипт вернёт индекс самого близкого к инпуту эмбеддинга
-    ### по индексу потом можно вызывать конкретное имя ###
+    database_path = путь к базе данных в формате csv
     limit - количество милисекунд, в течение которых работает камера
 
     """""
 
     cap = cv2.VideoCapture(source)
+    database = pd.read_csv(database_path, index_col=0)
     i = 0 
+
+    prev = 0
 
     while i<=limit:
 
@@ -456,8 +460,10 @@ def recognition_cam(source=0,
 
         with torch.no_grad():
             res = model(pic_tens.unsqueeze(0))
-        
-        coord = rescale_coordinates(res[0][1:], frame.shape)
+
+        bbox = res[0][1:] #*0.5+prev*0.5
+        # prev=bbox
+        coord = rescale_coordinates(bbox, frame.shape)
         
 
         
@@ -474,16 +480,17 @@ def recognition_cam(source=0,
         #     plt.axis('off')  # Turn off the axis
         #     plt.show()
         
-        
+        base = torch.from_numpy(database.values)
 
 
         embedding = embedding_model(cropped)
         distances = (base-embedding).pow(2).sum(axis=1)
         person_id = torch.argmin(distances).item()
+        name = database.index[person_id]
 
       
         cv2.rectangle(frame, (coord[0], coord[1]), (coord[2], coord[3]), (0, 0, 255), 2)
-        cv2.putText(frame , f'{person_id}', (coord[0], coord[1]), cv2.FONT_HERSHEY_SIMPLEX, 1, 255)
+        cv2.putText(frame , f'{name}', (coord[0], coord[1]), cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, thickness = 2, color = (0, 0, 255))
 
         
         cv2.imshow("Camera Feed with BBox", frame)
@@ -494,6 +501,31 @@ def recognition_cam(source=0,
     cap.release()
     cv2.destroyAllWindows()
 
+
+def add2db(folder_path, model, rec_model):
+    pic_list = os.listdir(folder_path)
+    database = pd.DataFrame(columns=range(512))
+    cropped_dict = {}
+
+    for pic in pic_list:
+        image = Image.open(f'{folder_path}/{pic}').convert('RGB')
+
+        image = tf.Compose([tf.Resize([128, 128], antialias=True), tf.ToTensor()])(image)
+        image = image.unsqueeze(0)
+        
+        with torch.no_grad():
+            bbox = model(image)
+
+            cropped_image = crop(image[0], bbox[0][1:], scale=1.2, size=128)
+            embedding = rec_model(cropped_image.unsqueeze(0)).detach().numpy()
+        
+        name = pic.split('.')[0]
+        database.loc[name, :] = embedding
+        database.to_csv(f'Database.csv')
+        
+        cropped_dict[name] = tf.ToPILImage()(cropped_image)
+
+    return cropped_dict
 
 
 def plot_images_with_bboxes(batch):
