@@ -504,39 +504,66 @@ def recognition_cam(source=0,
     cv2.destroyAllWindows()
 
 
-def add2db(folder_path, model, rec_model):
+def add2db(folder_path, owner, model, rec_model):
 
     """""
     folder_path - путь к папке с фотографиями
+    owner - имя человека с фотографий
     model - модель, выдающая координаты
     rec_model - модель для эмбеддингов
 
     """""
     
     pic_list = os.listdir(folder_path)
-    database = pd.DataFrame(columns=range(512))
-    cropped_dict = {}
+    if os.path.exists("Database.csv"):
+        database = pd.read_csv("Database.csv")
+    else:
+        database = pd.DataFrame(columns=["name"] + [f"emb{i}" for i in range(512)])
+
+    cropped_imgs = []
+    count_image = 0
+    database_have_such_name = owner in database.name.values
 
     for pic in pic_list:
         if pic != ".DS_Store":
-            image = Image.open(f'{folder_path}/{pic}').convert('RGB')
+            if not database_have_such_name:
+                image = Image.open(f'{folder_path}/{pic}').convert('RGB')
 
-            image = tf.Compose([tf.Resize([128, 128], antialias=True), tf.ToTensor()])(image)
-            image = image.unsqueeze(0)
-            
-            with torch.no_grad():
-                bbox = model(image)
+                image = tf.Compose([tf.Resize([128, 128], antialias=True), tf.ToTensor()])(image)
+                image = image.unsqueeze(0)
+                
+                with torch.no_grad():
+                    bbox = model(image)
 
-                cropped_image = crop(image[0], bbox[0][1:], scale=1.2, size=128)
-                embedding = rec_model(cropped_image.unsqueeze(0)).detach().numpy()
-            
-            name = pic.split('.')[0]
-            database.loc[name, :] = embedding
-            database.to_csv(f'Database.csv')
-            
-            cropped_dict[name] = tf.ToPILImage()(cropped_image)
+                    cropped_image = crop(image[0], bbox[0][1:], scale=1.2, size=128)
+                    if count_image==0:
+                        embedding = rec_model(cropped_image.unsqueeze(0)).detach().numpy()
+                    else:
+                        embedding += rec_model(cropped_image.unsqueeze(0)).detach().numpy()
 
-    return cropped_dict
+                cropped_imgs.append(tf.ToPILImage()(cropped_image))
+                count_image += 1
+            else:
+                print("Name exists, enter new name or delete old")
+                break
+
+    if  not database_have_such_name:
+
+        embedding = embedding/count_image
+
+        database.loc[database.shape[0]] = [owner] + np.array(embedding/count_image)[0].tolist()
+        database.to_csv(f'Database.csv', index=False)
+
+        return cropped_imgs
+
+
+def drop_from_database(value_to_drop):
+    if os.path.exists("Database.csv"):
+        database = pd.read_csv("Database.csv")
+        database = database.loc[database['name'] != value_to_drop]
+        database.to_csv(f'Database.csv', index=False)
+    else:
+        print("Database doesn't exists")
 
 
 def plot_images_with_bboxes(batch):

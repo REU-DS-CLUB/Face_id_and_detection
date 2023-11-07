@@ -1,4 +1,5 @@
 data/
+photos_to_load
 checkpoints/
 secrets.json
 kaggle.json
