@@ -278,9 +278,8 @@ class CelebATriplets(Dataset):
 transform_faces = A.Compose([
     A.Rotate(limit=30, p=0.1),
     A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.1),
-    A.Flip(p=0.1),
+    A.Flip(p=0.2),
     A.ShiftScaleRotate(shift_limit=0.4, p=0.5, border_mode=cv2.BORDER_CONSTANT, value=0),
-    
     A.GaussianBlur(p=0.01)
 ], bbox_params=A.BboxParams(format='pascal_voc', min_visibility=0.5, label_fields=['class_labels'])) # min_area=1024 min_visibility=0.1
 
@@ -310,7 +309,7 @@ dataset_of_backgrounds = BackgroundDataset(backg_image_path, transform)
 
 #concatinating all datasets
 dataset = ConcatDataset(
-    [Ten_Thousand_Face_dataset, dataset_of_backgrounds])
+    [Ten_Thousand_Face_dataset,Ten_Thousand_Face_dataset, dataset_of_backgrounds])
 
 
 # detection_dataloader = DataLoader(
