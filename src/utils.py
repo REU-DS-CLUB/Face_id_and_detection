@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 from torchvision import transforms
+import src.models as models
 
 
 import datetime
@@ -481,6 +482,7 @@ def recognition_cam(source=0,
         #     plt.show()
         
         base = torch.from_numpy(database.values)
+        
 
 
         embedding = embedding_model(cropped)
@@ -516,22 +518,23 @@ def add2db(folder_path, model, rec_model):
     cropped_dict = {}
 
     for pic in pic_list:
-        image = Image.open(f'{folder_path}/{pic}').convert('RGB')
+        if pic != ".DS_Store":
+            image = Image.open(f'{folder_path}/{pic}').convert('RGB')
 
-        image = tf.Compose([tf.Resize([128, 128], antialias=True), tf.ToTensor()])(image)
-        image = image.unsqueeze(0)
-        
-        with torch.no_grad():
-            bbox = model(image)
+            image = tf.Compose([tf.Resize([128, 128], antialias=True), tf.ToTensor()])(image)
+            image = image.unsqueeze(0)
+            
+            with torch.no_grad():
+                bbox = model(image)
 
-            cropped_image = crop(image[0], bbox[0][1:], scale=1.2, size=128)
-            embedding = rec_model(cropped_image.unsqueeze(0)).detach().numpy()
-        
-        name = pic.split('.')[0]
-        database.loc[name, :] = embedding
-        database.to_csv(f'Database.csv')
-        
-        cropped_dict[name] = tf.ToPILImage()(cropped_image)
+                cropped_image = crop(image[0], bbox[0][1:], scale=1.2, size=128)
+                embedding = rec_model(cropped_image.unsqueeze(0)).detach().numpy()
+            
+            name = pic.split('.')[0]
+            database.loc[name, :] = embedding
+            database.to_csv(f'Database.csv')
+            
+            cropped_dict[name] = tf.ToPILImage()(cropped_image)
 
     return cropped_dict
 
@@ -653,3 +656,19 @@ class EarlyStopping:
         else:
             self.best_loss = val_loss
             self.counter = 0
+
+
+def get_models_with_weights():
+    det_model = models.InspectorGadjet()
+    model_state_dict = torch.load(config['path_to_detection_weights'], map_location=torch.device('cpu'))['model_state_dict']
+    det_model.load_state_dict(model_state_dict)
+    det_model.eval()
+
+
+    conv = models.ConvEmbedding()
+    rec_model = models.Triplet(conv)
+    model_state_dict = torch.load(config['path_to_recognition_weights'], map_location=torch.device('cpu'))['model_state_dict']
+    rec_model.load_state_dict(model_state_dict)
+    rec_model.eval()
+
+    return det_model, rec_model.encoder
