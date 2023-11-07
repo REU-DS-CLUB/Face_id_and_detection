@@ -17,6 +17,11 @@ recognition_epochs: 20
 recognition_logging: False
 recognition_log_wieghts_interval: 5
 
+path_to_detection_weights: asf
+
+path_to_recognition_weights: sdfa
+
+
 
 
 
