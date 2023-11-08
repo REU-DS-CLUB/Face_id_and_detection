@@ -486,9 +486,15 @@ def recognition_cam(source=0,
 
 
         embedding = embedding_model(cropped)
+       
         distances = (base-embedding).pow(2).sum(axis=1)
+      
+
         person_id = torch.argmin(distances).item()
+        
         name = database.index[person_id]
+        # print('name - ', database.iloc[person_id]['name'])
+        # print('embeding - ', database.iloc[person_id])
 
       
         cv2.rectangle(frame, (coord[0], coord[1]), (coord[2], coord[3]), (0, 0, 255), 2)
@@ -527,15 +533,19 @@ def add2db(folder_path, owner, model, rec_model):
     for pic in pic_list:
         if pic != ".DS_Store":
             if not database_have_such_name:
-                image = Image.open(f'{folder_path}/{pic}').convert('RGB')
+                image = cv2.imread(f'{folder_path}/{pic}')
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-                image = tf.Compose([tf.Resize([128, 128], antialias=True), tf.ToTensor()])(image)
-                image = image.unsqueeze(0)
+                image_for_detection = cv2.resize(image, (128, 128))
+                image_for_detection = transform(image_for_detection)
+
+                image_to_crop = tf.ToTensor()(image)
                 
                 with torch.no_grad():
-                    bbox = model(image)
-
-                    cropped_image = crop(image[0], bbox[0][1:], scale=1.2, size=128)
+                    bbox = model(image_for_detection.unsqueeze(0))
+                    bbox = rescale_coordinates(bbox[0][1:], image.shape)
+                    print(bbox)
+                    cropped_image = crop(image_to_crop, bbox, scale=0.6, size=128)
                     if count_image==0:
                         embedding = rec_model(cropped_image.unsqueeze(0)).detach().numpy()
                     else:
@@ -554,7 +564,7 @@ def add2db(folder_path, owner, model, rec_model):
         database.loc[database.shape[0]] = [owner] + np.array(embedding/count_image)[0].tolist()
         database.to_csv(f'Database.csv', index=False)
 
-        return cropped_imgs
+    return cropped_imgs
 
 
 def drop_from_database(value_to_drop):
