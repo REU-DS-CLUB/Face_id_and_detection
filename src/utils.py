@@ -674,6 +674,21 @@ def validate_model(model, test_dataloader, loss_fn, device):
     model.train()  # Вернуть модель в режим обучения
     return avg_loss
 
+def validate_model_rec(model, test_dataloader, loss_fn, device):
+    # модель для валидации при обучении triplet модели
+    model.eval() 
+    total_loss = 0.0
+    with torch.no_grad(): 
+        for sample in test_dataloader:
+            ans, pos, neg = sample 
+            preds = model(ans.to(device), pos.to(device), neg.to(device))
+            loss = loss_fn(*preds)
+            total_loss += loss.item()
+    
+    avg_loss = total_loss / len(test_dataloader) 
+    model.train()  
+    return avg_loss
+
 
 class EarlyStopping:
     def __init__(self, patience=5, min_delta=0):
