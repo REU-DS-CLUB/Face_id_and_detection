@@ -469,7 +469,7 @@ def recognition_cam(source=0,
 
         
         # cropped = crop(tf.ToTensor()(rgb_frame), coord, size=128, scale=1.2).unsqueeze(0)
-        cropped = crop(tf.ToTensor()(rgb_frame), coord, size=128, scale=1.2).unsqueeze(0)
+        cropped = crop(tf.ToTensor()(rgb_frame), coord, size=160, scale=1.2).unsqueeze(0)
         # print('cropped type - ', type(cropped), 'shape - ', cropped.shape)
         # image = cropped.squeeze(0)
 
@@ -722,5 +722,6 @@ def get_models_with_weights():
     model_state_dict = torch.load(config['path_to_recognition_weights'], map_location=torch.device('cpu'))['model_state_dict']
     rec_model.load_state_dict(model_state_dict)
     rec_model.eval()
+    print('Successfully loaded weights')
 
     return det_model, rec_model.encoder

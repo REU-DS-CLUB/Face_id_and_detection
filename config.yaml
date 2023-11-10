@@ -19,7 +19,7 @@ recognition_log_wieghts_interval: 5
 
 path_to_detection_weights: "/Users/andreisuhov/Downloads/18_checkpoint_detection.pth"
 
-path_to_recognition_weights: "/Users/andreisuhov/Downloads/checkpoint_epoch_19_recognition.pth"
+path_to_recognition_weights: "/Users/andreisuhov/Desktop/4_checkpoint_recognition.pth"
 
 
 
