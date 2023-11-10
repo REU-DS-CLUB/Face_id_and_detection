@@ -238,7 +238,7 @@ class InspectorGadjet(nn.Module):
 
 
 class ConvEmbedding(nn.Module):
-    def __init__(self, pic_size=128, emb_size=512):
+    def __init__(self, pic_size=160, emb_size=512):
         super().__init__()
         
         self.conv_layers = nn.Sequential(

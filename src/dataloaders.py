@@ -252,8 +252,8 @@ class CelebATriplets(Dataset):
         def get_img(image_path):
             img = cv2.imread(str(image_path))
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            img = cv2.resize(img, (self.size, self.size)).astype(np.float32)
-            img /= 255.0
+            img = cv2.resize(img, (160, 160)).astype(np.float32)
+            # img /= 255.0
             img = np.transpose(img, (2, 0, 1))
             return img
 

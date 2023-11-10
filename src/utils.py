@@ -545,7 +545,7 @@ def add2db(folder_path, owner, model, rec_model):
                     bbox = model(image_for_detection.unsqueeze(0))
                     bbox = rescale_coordinates(bbox[0][1:], image.shape)
                     print(bbox)
-                    cropped_image = crop(image_to_crop, bbox, scale=0.6, size=128)
+                    cropped_image = crop(image_to_crop, bbox, scale=0.6, size=160)
                     if count_image==0:
                         embedding = rec_model(cropped_image.unsqueeze(0)).detach().numpy()
                     else:
