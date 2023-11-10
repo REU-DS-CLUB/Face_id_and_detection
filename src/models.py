@@ -311,3 +311,93 @@ def combined_loss(pred_class, pred_bbox, target):
     combined_loss = loss_class + loss_bbox
 
     return combined_loss
+
+
+class InceptionModule(nn.Module):
+    def __init__(self, in_channels, n1x1, n3x3red, n3x3, n5x5red, n5x5, pool_proj):
+        super(InceptionModule, self).__init__()
+        # 1x1 conv branch
+        self.b1 = nn.Sequential(
+            nn.Conv2d(in_channels, n1x1, kernel_size=1),
+            nn.BatchNorm2d(n1x1),
+            nn.ReLU(inplace=True)
+        )
+
+        # 1x1 conv -> 3x3 conv branch
+        self.b2 = nn.Sequential(
+            nn.Conv2d(in_channels, n3x3red, kernel_size=1),
+            nn.BatchNorm2d(n3x3red),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(n3x3red, n3x3, kernel_size=3, padding=1),
+            nn.BatchNorm2d(n3x3),
+            nn.ReLU(inplace=True)
+        )
+
+        # 1x1 conv -> 5x5 conv branch
+        self.b3 = nn.Sequential(
+            nn.Conv2d(in_channels, n5x5red, kernel_size=1),
+            nn.BatchNorm2d(n5x5red),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(n5x5red, n5x5, kernel_size=5, padding=2),
+            nn.BatchNorm2d(n5x5),
+            nn.ReLU(inplace=True)
+        )
+
+        # 3x3 pool -> 1x1 conv branch
+        self.b4 = nn.Sequential(
+            nn.MaxPool2d(kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(in_channels, pool_proj, kernel_size=1),
+            nn.BatchNorm2d(pool_proj),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, x):
+        return torch.cat([self.b1(x), self.b2(x), self.b3(x), self.b4(x)], 1)
+
+class GoogLeNet(nn.Module):
+    def __init__(self, num_classes=1000):
+        super(GoogLeNet, self).__init__()
+        self.pre_layers = nn.Sequential(
+            nn.Conv2d(3, 192, kernel_size=3, padding=1),
+            nn.BatchNorm2d(192),
+            nn.ReLU(inplace=True)
+        )
+
+        self.a3 = InceptionModule(192, 64, 96, 128, 16, 32, 32)
+        self.b3 = InceptionModule(256, 128, 128, 192, 32, 96, 64)
+
+        # max pool
+
+        self.a4 = InceptionModule(480, 192, 96, 208, 16, 48, 64)
+        self.b4 = InceptionModule(512, 160, 112, 224, 24, 64, 64)
+        self.c4 = InceptionModule(512, 128, 128, 256, 24, 64, 64)
+        self.d4 = InceptionModule(512, 112, 144, 288, 32, 64, 64)
+        self.e4 = InceptionModule(528, 256, 160, 320, 32, 128, 128)
+
+        # max pool
+
+        self.a5 = InceptionModule(832, 256, 160, 320, 32, 128, 128)
+        self.b5 = InceptionModule(832, 384, 192, 384, 48, 128, 128)
+
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.dropout = nn.Dropout(0.4)
+        self.fc = nn.Linear(1024, num_classes)
+
+    def forward(self, x):
+        x = self.pre_layers(x)
+        x = self.a3(x)
+        x = self.b3(x)
+        x = F.max_pool2d(x, kernel_size=3, stride=2, padding=1)
+        x = self.a4(x)
+        x = self.b4(x)
+        x = self.c4(x)
+        x = self.d4(x)
+        x = self.e4(x)
+        x = F.max_pool2d(x, kernel_size=3, stride=2, padding=1)
+        x = self.a5(x)
+        x = self.b5(x)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)  # Flatten the output
+        x = self.dropout(x)
+        x = self.fc(x)
+        return x

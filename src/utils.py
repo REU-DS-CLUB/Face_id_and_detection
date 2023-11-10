@@ -469,7 +469,7 @@ def recognition_cam(source=0,
 
         
         # cropped = crop(tf.ToTensor()(rgb_frame), coord, size=128, scale=1.2).unsqueeze(0)
-        cropped = crop(tf.ToTensor()(rgb_frame), coord, size=160, scale=1.2).unsqueeze(0)
+        cropped = crop(tf.ToTensor()(rgb_frame), coord, size=160, scale=1.5).unsqueeze(0)
         # print('cropped type - ', type(cropped), 'shape - ', cropped.shape)
         # image = cropped.squeeze(0)
 
@@ -539,13 +539,15 @@ def add2db(folder_path, owner, model, rec_model):
                 image_for_detection = cv2.resize(image, (128, 128))
                 image_for_detection = transform(image_for_detection)
 
-                image_to_crop = tf.ToTensor()(image)
+                image_for_recognition = cv2.resize(image, (160, 160))
+                image_to_crop = tf.ToTensor()(image_for_recognition)
                 
                 with torch.no_grad():
-                    bbox = model(image_for_detection.unsqueeze(0))
-                    bbox = rescale_coordinates(bbox[0][1:], image.shape)
-                    print(bbox)
-                    cropped_image = crop(image_to_crop, bbox, scale=0.6, size=160)
+                    # bbox = model(image_for_detection.unsqueeze(0))
+                    # bbox = rescale_coordinates(bbox[0][1:], image.shape)
+                    # print(bbox)
+                    # cropped_image = crop(image_to_crop, bbox, scale=0.6, size=160)
+                    cropped_image = image_to_crop
                     if count_image==0:
                         embedding = rec_model(cropped_image.unsqueeze(0)).detach().numpy()
                     else:
