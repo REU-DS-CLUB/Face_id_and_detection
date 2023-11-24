@@ -11,8 +11,8 @@ import torch
 from torchvision import transforms
 from torch.utils.data import DataLoader, Dataset, ConcatDataset, random_split
 
-
 import src.utils as utils
+
 
 # загружаем данные из конфига
 config = utils.get_options()
@@ -20,8 +20,6 @@ config = utils.get_options()
 batch_size = config['batch_size']
 img_size = config['img_size']
 img_size_recog = config['img_size_recog']
-
-
 
 
 # задаем корневую папку
@@ -265,8 +263,6 @@ class CelebATriplets(Dataset):
         pos = get_img(self.images_path.joinpath(pos_path))
         neg = get_img(self.images_path.joinpath(neg_path))
 
-        # pos_id = triplet.id2.values[0]
-        # neg_id = triplet.id3.values[0]
         return [anc, pos, neg]
 
     def __len__(self):
@@ -311,11 +307,6 @@ dataset_of_backgrounds = BackgroundDataset(backg_image_path, transform)
 dataset = ConcatDataset(
     [Ten_Thousand_Face_dataset,Ten_Thousand_Face_dataset, dataset_of_backgrounds])
 
-
-# detection_dataloader = DataLoader(
-#     dataset=dataset, batch_size=batch_size, shuffle=True)
-
-
 def get_train_test_dataloaders(dataset, test_size):
     train_dataset, test_dataset = random_split(dataset, [1-test_size, test_size])
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -329,10 +320,6 @@ train_detection_dataloader, test_detection_dataloader = get_train_test_dataloade
 # celebA dataset
 celeb_images = f"{root}data/celeba-face-recognition-triplets/CelebA FR Triplets/CelebA FR Triplets/images"
 celeb_triplets_csv = f"{root}data/celeba-face-recognition-triplets/CelebA FR Triplets/CelebA FR Triplets/triplets.csv"
-
-# celeb_images = f"{root}data/CelebA FR Triplets/images"
-# celeb_triplets_csv = f"{root}data/CelebA FR Triplets/triplets.csv"
-
 
 CelebA_dataset = CelebATriplets(celeb_images, celeb_triplets_csv)
 

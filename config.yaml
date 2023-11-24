@@ -1,13 +1,9 @@
 
-
 use_colab: False
-use_supercomp: False
-device_num: 3
 
 img_size: 128
 img_size_recog: 128
 batch_size: 16
-model: 0
 
 detection_epochs: 50
 detection_logging: False
@@ -19,7 +15,7 @@ recognition_log_wieghts_interval: 5
 
 path_to_detection_weights: "/Users/andreisuhov/Downloads/18_checkpoint_detection.pth"
 
-path_to_recognition_weights: "/Users/andreisuhov/Desktop/13_checkpoint_recognition.pth"
+path_to_recognition_weights: "/Users/andreisuhov/Downloads/3_checkpoint_recognition (1).pth"
 
 
 

@@ -1,22 +1,6 @@
-import os
-import zipfile
-from pathlib import Path
-import datetime
-import random
-
-import numpy as np
-import matplotlib.pyplot as plt
-from tqdm import tqdm
-from PIL import Image
-import cv2
-
-
 import torch
 import torch.nn as nn
-from torchvision import models, transforms, datasets
-from torch.utils.data import DataLoader, Dataset
 import torchvision.models
-import torchvision.transforms as transforms
 import torch.nn.functional as F
 
 
@@ -56,17 +40,6 @@ def get_efficient_net(size='m', pretrained=True):
     return effnet
 
 
-def get_resnet(pretrained):
-
-    resnet = torch.hub.load('pytorch/vision:v0.10.0', 'resnet50', pretrained=pretrained)
-
-    OUTPUT_NEURONS = 5
-
-    num_of_in_features = resnet.fc.in_features
-
-    resnet.fc = torch.nn.Linear(num_of_in_features, OUTPUT_NEURONS)
-
-    return resnet
 
 
 class VGG16(nn.Module):
@@ -171,7 +144,6 @@ class VGG4(nn.Module):
         x = self.fc3(x)
 
         return x
-
 
 
 

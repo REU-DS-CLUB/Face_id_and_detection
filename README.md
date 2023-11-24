@@ -11,8 +11,6 @@ main.ipynb                                 | главный скрипт
 
 Стек технологий: matplotlib, numpy, pytorch
 
-
-
 ## :paw_prints: Контакты
 
 **Telegram**: @suhowandrew, @polyanka003, @sponkulusnodge, @sophi_nikol

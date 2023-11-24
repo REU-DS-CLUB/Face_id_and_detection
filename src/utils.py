@@ -1,11 +1,10 @@
 import os
 import yaml
-from datetime import datetime
-from pathlib import Path
 import subprocess
 import zipfile
 import shutil
 import csv
+from pathlib import Path
 
 import cv2
 import torch
@@ -13,26 +12,27 @@ from numpy import inf
 import torch.nn as nn
 import torchvision
 import torchvision.transforms as tf
+from torchvision import transforms
 import torch.nn.functional as F
-
-from torchvision.utils import draw_bounding_boxes 
+from PIL import Image, ImageDraw
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
-from torchvision import transforms
+import pandas as pd
+import timm
+
 import src.models as models
 
 
-import datetime
-import cv2
-from torchvision import transforms
-import torchvision 
-from PIL import Image, ImageDraw
-import numpy as np
-import pandas as pd
-
 # функция для загрузки конфига
 def get_options():
+    """
+    Загрузка конфигурационных опций из файла config.yaml.
+
+    Returns:
+    dict: Словарь с конфигурационными опциями.
+
+    """
     options_path = 'config.yaml'
     with open(options_path, 'r') as option_file:
         options = yaml.safe_load(option_file)
@@ -48,12 +48,19 @@ transform = transforms.Compose([
 
 
 
-
-
 ### ФУНКЦИИ ДЛЯ СКАЧИВАНИЯ И ОБРАБОТКИ ДАТАСЕТОВ ###
 
 # функция загрузки файла kaggle.json
 def get_kaggle_json_file():
+
+    """
+    Загрузка файла kaggle.json через Google Colab.
+
+    Returns:
+    None
+
+    """
+
     from google.colab import files
     print('ЗАГРУЗИТЕ kaggle.json ФАЙЛ')
 
@@ -66,6 +73,18 @@ def get_kaggle_json_file():
 
 # функция исполнения команд в консоли
 def execute_terminal_comands(commands):
+
+    """
+    Выполнение команд в терминале и возврат результатов.
+
+    Parameters:
+    - commands (list): Список команд для выполнения в терминале.
+
+    Returns:
+    list: Список результатов выполнения каждой команды в терминале.
+
+    """
+
     r = []
     for command in commands:
         r.append(subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True))
@@ -75,6 +94,18 @@ def execute_terminal_comands(commands):
 #Функция загрузки отдельного датасета
 def download_dataset_from_kaggle(full_name_of_dataset, name_of_dataset ):
 
+    """
+    Скачивание датасета с кагла, перемещение в папку и разархивирование
+
+    Parameters:
+    - full_name_of_dataset (str): Полное имя датасета на Kaggle, включая пользователя и название датасета.
+    - name_of_dataset (str): Название датасета, используемое для создания папки и сохранения архива.
+
+    Returns:
+    None
+
+    """
+
     print(f'\nНачинаю скачачивать датасет: {name_of_dataset}')
 
     download_face_detection_dataset = [
@@ -83,7 +114,7 @@ def download_dataset_from_kaggle(full_name_of_dataset, name_of_dataset ):
         f"mv {name_of_dataset}.zip data/"
         ]
     
-    d = execute_terminal_comands(download_face_detection_dataset)
+    execute_terminal_comands(download_face_detection_dataset)
  
     # разархивирование датасета
     data_path = Path("data/")
@@ -94,6 +125,10 @@ def download_dataset_from_kaggle(full_name_of_dataset, name_of_dataset ):
 
 
 def download_datasets_from_kaggle():
+
+    """
+    скачивание всех датасетов 
+    """
 
     get_kaggle_json_file()
 
@@ -120,6 +155,11 @@ def download_datasets_from_kaggle():
 
 # препроцессинг датасета с 10к картинками для более удобной работы с ним
 def preprocessing_of_face_detection_dataset():
+
+    """
+    Предобработка датасета face_detection_dataset
+    """
+
     print('Начинаю обработку датасета face_detection_dataset')
     
     if config['use_colab']:
@@ -200,6 +240,10 @@ def preprocessing_of_face_detection_dataset():
 # функция для проверки и дозагрузки датасетов на локальную машину
 def check_if_datasets_are_downloaded():
 
+    """
+    Проверка, скачаны ли датасеты локально и если нет, то их скачивание. 
+    """
+
     if not os.path.exists('/.kaggle/kaggle.json'):
         print('Moving kaggle file')
         #check if we have kaggle.json file
@@ -237,7 +281,10 @@ def check_if_datasets_are_downloaded():
 
 # полный цикл загрузки и обработки датасетов для колаба
 def colab():
-
+    """
+    Функция, которая собирает все функции скачивания и подготовки датасетов в гугл колаб
+    """
+    
     download_datasets_from_kaggle()
 
     preprocessing_of_face_detection_dataset()
@@ -247,19 +294,27 @@ def colab():
 
 
 
-
-
-
-
-
 ### ФУНКЦИИ ДЛЯ РАБОТЫ ###
 
 
 def save_img(img, pred, epoch):
+
+    """
+    Сохранение изображения с нарисованным предсказанным bounding box.
+
+    Parameters:
+    - img: Изображение в формате numpy array или torch.Tensor.
+    - pred: Тензор предсказанных bounding box в формате [x1, y1, x2, y2].
+    - epoch: Номер эпохи, используемый для формирования имени сохраняемого файла.
+
+    Returns:
+    None
+
+    """
+
     img = img.numpy() if isinstance(img, torch.Tensor) else img
     
     cur_height, cur_width = img.shape[:2]
-    
     
     # Convert prediction tensor to a list of bounding box coordinates
     bbox = pred.tolist()
@@ -269,8 +324,6 @@ def save_img(img, pred, epoch):
     y1 = y1/128*cur_height
     y2 = y2/128*cur_height
     bbox = [x1, y1, x2, y2]
-
-    # bbox = [i/ for i in bbox]
     
     # Create a PIL Image from the numpy array
     img = Image.fromarray(np.uint8(img))
@@ -288,7 +341,17 @@ def save_img(img, pred, epoch):
     
 
 def save_img_after_epoch(path_to_img, mdl, epoch, device):
-    
+
+    """
+    Загружает изображение, обрабатывает его моделью после указанной эпохи обучения и сохраняет результат.
+
+    Parameters:
+    - path_to_img (str): Путь к изображению.
+    - mdl (torch.nn.Module): Обученная модель PyTorch.
+    - epoch (int): Номер эпохи обучения.
+    - device (torch.device): Устройство, на котором выполнять вычисления (например, 'cuda' для GPU или 'cpu' для CPU).
+    """
+
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Lambda(lambda x: x / 255.0), # normalization
@@ -328,6 +391,8 @@ def rescale_coordinates(bbox, size):
 def cam_capture(source=0, model=None, bbox_func=None, limit=inf):
 
     """""
+
+
     source - источник видео, если 0,то это камера ноутбука
     model - модель, выдающая координаты
     bbox_func - функция, котороая строит изображение с bounding box'ом на основе предиктов модели
@@ -383,11 +448,16 @@ def cam_capture(source=0, model=None, bbox_func=None, limit=inf):
 def crop(pic, coords, scale=2, size=256):
     
     '''
-    pic - входное изображение tensor
-    coords - координаты рамки
-    scale - фактор скалирования рамки (то, во сколько раз обрезанное изображение больше рамки)
-    size - размер выходного изображение
-    
+    Обрезает изображение вокруг заданных координат и берет площадь не только по рамкам, а вокруг или внутри. 
+
+    Параметры:
+    pic (tensor): Входное изображение.
+    coords (list): Список координат [x_min, y_min, x_max, y_max] рамки.
+    scale (float): Фактор скалирования рамки (во сколько раз обрезанное изображение больше рамки). По умолчанию 2.
+    size (int): Размер выходного изображения. По умолчанию 256.
+
+    Возвращает:
+    tensor: Обрезанное и измененное по размеру изображение.
     '''
     
     pic_width = pic.shape[2]
@@ -461,47 +531,44 @@ def recognition_cam(source=0,
 
         with torch.no_grad():
             res = model(pic_tens.unsqueeze(0))
+        
+        # print('res - ', res)
+        if res[0][0] > 0.9:
+            
 
-        bbox = res[0][1:] #*0.5+prev*0.5
-        # prev=bbox
-        coord = rescale_coordinates(bbox, frame.shape)
+            bbox = res[0][1:] #*0.5+prev*0.5
+        
+            coord = rescale_coordinates(bbox, frame.shape)
         
 
         
-        # cropped = crop(tf.ToTensor()(rgb_frame), coord, size=128, scale=1.2).unsqueeze(0)
-        cropped = crop(tf.ToTensor()(rgb_frame), coord, size=160, scale=1.5).unsqueeze(0)
-        # print('cropped type - ', type(cropped), 'shape - ', cropped.shape)
-        # image = cropped.squeeze(0)
-
-        # image = image.permute(1, 2, 0).numpy()
-        # print(image)
-        # if i > 5 and i <10:
-        # # The image is now in the shape of HxWxC and ready to be plotted
-        #     plt.imshow(image)
-        #     plt.axis('off')  # Turn off the axis
-        #     plt.show()
         
-        base = torch.from_numpy(database.values)
+            cropped = crop(tf.ToTensor()(rgb_frame), coord, size=160, scale=1.5).unsqueeze(0)
+        
+        
+            base = torch.from_numpy(database.values)
         
 
 
-        embedding = embedding_model(cropped)
+            embedding = embedding_model(cropped)
        
-        distances = (base-embedding).pow(2).sum(axis=1)
+            distances = (base-embedding).pow(2).sum(axis=1)
+
+            
+            if torch.min(distances) > 1.2:
+                name = 'unknown'
+            else: 
+                person_id = torch.argmin(distances).item()
+                name = database.index[person_id]
+       
       
-
-        person_id = torch.argmin(distances).item()
-        
-        name = database.index[person_id]
-        # print('name - ', database.iloc[person_id]['name'])
-        # print('embeding - ', database.iloc[person_id])
-
-      
-        cv2.rectangle(frame, (coord[0], coord[1]), (coord[2], coord[3]), (0, 0, 255), 2)
-        cv2.putText(frame , f'{name}', (coord[0], coord[1]), cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, thickness = 2, color = (0, 0, 255))
+            cv2.rectangle(frame, (coord[0], coord[1]), (coord[2], coord[3]), (0, 0, 255), 2)
+            cv2.putText(frame , f'{name}', (coord[0], coord[1]), cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, thickness = 2, color = (0, 0, 255))
 
         
+
         cv2.imshow("Camera Feed with BBox", frame)
+
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         i += 1
@@ -510,15 +577,20 @@ def recognition_cam(source=0,
     cv2.destroyAllWindows()
 
 
-def add2db(folder_path, owner, model, rec_model):
+def add2db(folder_path, owner, rec_model):
 
-    """""
-    folder_path - путь к папке с фотографиями
-    owner - имя человека с фотографий
-    model - модель, выдающая координаты
-    rec_model - модель для эмбеддингов
+    """
+    Add images from the specified folder to a database.
 
-    """""
+    Parameters:
+    - folder_path (str): Path to the folder containing the photos.
+    - owner (str): Name of the person in the photos.
+    - model: The model providing coordinates.
+    - rec_model: The model for embeddings.
+
+    Returns:
+    - cropped_imgs (list): List of PIL images after cropping.
+    """
     
     pic_list = os.listdir(folder_path)
     if os.path.exists("Database.csv"):
@@ -543,10 +615,7 @@ def add2db(folder_path, owner, model, rec_model):
                 image_to_crop = tf.ToTensor()(image_for_recognition)
                 
                 with torch.no_grad():
-                    # bbox = model(image_for_detection.unsqueeze(0))
-                    # bbox = rescale_coordinates(bbox[0][1:], image.shape)
-                    # print(bbox)
-                    # cropped_image = crop(image_to_crop, bbox, scale=0.6, size=160)
+                    
                     cropped_image = image_to_crop
                     if count_image==0:
                         embedding = rec_model(cropped_image.unsqueeze(0)).detach().numpy()
@@ -569,13 +638,30 @@ def add2db(folder_path, owner, model, rec_model):
     return cropped_imgs
 
 
+
 def drop_from_database(value_to_drop):
+    """
+    Удаляет строки из базы данных, сохраненной в файле 'Database.csv', где значение в столбце 'name' равно указанному значению.
+
+    Параметры:
+    - value_to_drop (str): Значение в столбце 'name', строки с которым следует удалить из базы данных.
+
+    Пример использования:
+    drop_from_database('John Doe')
+
+    Примечание:
+    Если файл 'Database.csv' не существует, будет выведено сообщение "Database doesn't exists".
+    """
+    import os
+    import pandas as pd
+
     if os.path.exists("Database.csv"):
         database = pd.read_csv("Database.csv")
         database = database.loc[database['name'] != value_to_drop]
         database.to_csv(f'Database.csv', index=False)
     else:
-        print("Database doesn't exists")
+        print("Database doesn't exist")
+
 
 
 def plot_images_with_bboxes(batch):
@@ -713,17 +799,36 @@ class EarlyStopping:
 
 
 def get_models_with_weights():
+    """
+    Инициализирует и загружает предобученные веса для моделей детекции и распознавания.
+
+    Эта функция создает экземпляр класса InspectorGadjet в качестве модели детекции,
+    загружает предобученные веса для модели детекции и устанавливает ее в режим оценки.
+
+    Также создается модель EfficientNetB1 с измененным классификатором для распознавания,
+    создается модель Triplet, использующая измененный EfficientNetB1, загружаются предобученные
+    веса для модели распознавания и устанавливаются в режим оценки.
+
+    Параметры:
+        Нет
+
+    Возвращает:
+        tuple: Кортеж, содержащий модель детекции (экземпляр InspectorGadjet) и
+        часть модели распознавания (кодировщик Triplet модели).
+    """
+
     det_model = models.InspectorGadjet()
     model_state_dict = torch.load(config['path_to_detection_weights'], map_location=torch.device('cpu'))['model_state_dict']
     det_model.load_state_dict(model_state_dict)
     det_model.eval()
 
-
-    conv = models.ConvEmbedding()
+    conv = timm.create_model('efficientnet_b1', pretrained=True)
+    conv.classifier = nn.Linear(conv.classifier.in_features, 512)
     rec_model = models.Triplet(conv)
     model_state_dict = torch.load(config['path_to_recognition_weights'], map_location=torch.device('cpu'))['model_state_dict']
     rec_model.load_state_dict(model_state_dict)
     rec_model.eval()
+    
     print('Successfully loaded weights')
 
     return det_model, rec_model.encoder
