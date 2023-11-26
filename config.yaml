@@ -13,9 +13,8 @@ recognition_epochs: 20
 recognition_logging: False
 recognition_log_wieghts_interval: 5
 
-path_to_detection_weights: "/Users/andreisuhov/Downloads/18_checkpoint_detection.pth"
-
-path_to_recognition_weights: "/Users/andreisuhov/Downloads/3_checkpoint_recognition (1).pth"
+path_to_detection_weights: "" # файл .pth
+path_to_recognition_weights: "" # файл .pth 
 
 
 

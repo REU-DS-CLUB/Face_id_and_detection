@@ -488,6 +488,7 @@ def crop(pic, coords, scale=2, size=256):
     
     return res
 
+
 def recognition_cam(source=0, 
                 model=None,
                 embedding_model=None, 
@@ -762,6 +763,7 @@ def validate_model(model, test_dataloader, loss_fn, device):
     model.train()  # Вернуть модель в режим обучения
     return avg_loss
 
+
 def validate_model_rec(model, test_dataloader, loss_fn, device):
     # модель для валидации при обучении triplet модели
     model.eval() 
@@ -817,18 +819,23 @@ def get_models_with_weights():
         часть модели распознавания (кодировщик Triplet модели).
     """
 
+    # задаем тип модели через класс
     det_model = models.InspectorGadjet()
+
     model_state_dict = torch.load(config['path_to_detection_weights'], map_location=torch.device('cpu'))['model_state_dict']
     det_model.load_state_dict(model_state_dict)
     det_model.eval()
 
-    conv = timm.create_model('efficientnet_b1', pretrained=True)
-    conv.classifier = nn.Linear(conv.classifier.in_features, 512)
+
+    # задаем тип модели через класс
+    conv = timm.create_model('efficientnet_b1', pretrained=False) # в данном случае берем готовую архитекуру
+    conv.classifier = nn.Linear(conv.classifier.in_features, 512) # меняем архитектуру под нашу задачу
     rec_model = models.Triplet(conv)
+
     model_state_dict = torch.load(config['path_to_recognition_weights'], map_location=torch.device('cpu'))['model_state_dict']
     rec_model.load_state_dict(model_state_dict)
     rec_model.eval()
     
-    print('Successfully loaded weights')
 
-    return det_model, rec_model.encoder
+    print('Successfully loaded weights')
+    return det_model, rec_model.encoder # возвращаем только encoder модели recognition, так как нам нужен только он
